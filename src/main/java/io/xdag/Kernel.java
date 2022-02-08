@@ -88,6 +88,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tuweni.bytes.Bytes32;
+import org.apache.tuweni.bytes.MutableBytes32;
 import org.bouncycastle.util.encoders.Hex;
 
 @Slf4j
@@ -234,6 +235,12 @@ public class Kernel {
             }
             blockchain.tryToConnect(firstAccount);
         } else {
+            MutableBytes32 hashLow = MutableBytes32.create();
+//            System.arraycopy(getHash(), 8, hashLow, 8, 24);
+            hashLow.set(8, Bytes32.wrap(xdagStats.getGlobalMiner()).slice(8, 24));
+
+            System.out.println(hashLow);
+            System.out.println(blockchain.getBlockByHash(hashLow,true).getXdagBlock().getData());
             poolMiner = new Miner(Bytes32.wrap(xdagStats.getGlobalMiner()));
         }
         log.info("Blockchain init");

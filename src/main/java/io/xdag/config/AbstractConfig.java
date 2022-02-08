@@ -314,7 +314,7 @@ public class AbstractConfig implements Config, AdminSpec, PoolSpec, NodeSpec, Wa
                     this.poolTag = StringUtils.substring(args[i + 1], 0, 31);
                     break;
                 default:
-                    log.error("Illegal instruction");
+                    log.debug("Illegal instruction");
             }
         }
     }
