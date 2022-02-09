@@ -25,6 +25,7 @@
 package io.xdag.rpc;
 
 import io.xdag.rpc.dto.BlockResultDTO;
+import io.xdag.rpc.dto.BlockStatusDTO;
 import io.xdag.rpc.dto.StatusDTO;
 import io.xdag.rpc.modules.web3.Web3XdagModule;
 import io.xdag.rpc.modules.xdag.XdagModule;
@@ -176,5 +177,10 @@ public class Web3Impl implements Web3 {
     @Override
     public StatusDTO xdag_getStatus() throws Exception {
         return web3XdagModule.xdag_getStatus();
+    }
+
+    @Override
+    public BlockStatusDTO xdag_getBlockStatus(String hash) throws Exception {
+        return web3XdagModule.xdag_getBlockStatus(hash);
     }
 }

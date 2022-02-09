@@ -24,6 +24,7 @@
 
 package io.xdag.rpc.modules.web3;
 
+import static io.xdag.cli.Commands.getStateByFlags;
 import static io.xdag.rpc.utils.TypeConverter.toQuantityJsonHex;
 import static io.xdag.utils.BasicUtils.address2Hash;
 import static io.xdag.utils.BasicUtils.amount2xdag;
@@ -36,6 +37,7 @@ import io.xdag.core.Blockchain;
 import io.xdag.core.XdagState;
 import io.xdag.core.XdagStats;
 import io.xdag.rpc.dto.BlockResultDTO;
+import io.xdag.rpc.dto.BlockStatusDTO;
 import io.xdag.rpc.dto.StatusDTO;
 import io.xdag.rpc.modules.xdag.XdagModule;
 import io.xdag.utils.BasicUtils;
@@ -155,6 +157,12 @@ public class Web3XdagModuleImpl implements Web3XdagModule {
         BigInteger diff = xdagStats.getDifficulty();
         double supply = amount2xdag(kernel.getBlockchain().getSupply(Math.max(xdagStats.nmain, xdagStats.totalnmain)));
         return new StatusDTO(nblocks, nmain, diff, supply);
+    }
+
+    @Override
+    public BlockStatusDTO xdag_getBlockStatus(String hash) throws Exception {
+        Block block = kernel.getBlockchain().getBlockByHash(Bytes32.fromHexString(hash),false);
+        return new BlockStatusDTO(block.getHash().toString(), getStateByFlags(block.getInfo().flags));
     }
 
     static class SyncingResult {
