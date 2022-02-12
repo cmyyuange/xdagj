@@ -45,6 +45,7 @@ import static io.xdag.utils.BasicUtils.getDiffByHash;
 import static io.xdag.utils.BasicUtils.getHashlowByHash;
 import static io.xdag.utils.BytesUtils.equalBytes;
 
+import cn.hutool.cache.impl.LRUCache;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLong;
 import io.xdag.Kernel;
@@ -105,6 +106,8 @@ import org.bouncycastle.util.encoders.Hex;
 @Getter
 public class BlockchainImpl implements Blockchain {
 
+    private static final int cacheSize = 1000;
+
     private static final ThreadFactory factory = new ThreadFactory() {
         private final AtomicInteger cnt = new AtomicInteger(0);
 
@@ -137,6 +140,9 @@ public class BlockchainImpl implements Blockchain {
     private SnapshotChainStore snapshotChainStore;
     private long snapshotHeight;
     private SnapshotJ snapshotJ;
+
+
+    private final LRUCache<ByteArrayWrapper,Block> cache = new LRUCache<>(cacheSize);
 
     @Getter
     private byte[] preSeed;
@@ -614,7 +620,11 @@ public class BlockchainImpl implements Blockchain {
                 && i > 1
                 && ct >= p.getTimestamp() + 2 * 1024) {
 //            log.info("setMain success block:{}", Hex.toHexString(p.getHashLow()));
-            setMain(p);
+            try {
+                setMain(p);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -990,6 +1000,7 @@ public class BlockchainImpl implements Blockchain {
         // 初始区块自身难度设置
         if (randomXUtils != null && randomXUtils.isRandomxFork(XdagTime.getEpoch(block.getTimestamp()))
                 && XdagTime.isEndOfEpoch(block.getTimestamp())) {
+            log.error("randomx");
             diff0 = getDiffByRandomXHash(block);
         } else {
             diff0 = getDiffByRawHash(block.getHash());
@@ -1073,6 +1084,7 @@ public class BlockchainImpl implements Blockchain {
         if (randomXUtils.randomXBlockHash(data.toArray(), data.size(), epoch) != null) {
             Bytes32 hash = Bytes32
                     .wrap(Arrays.reverse(randomXUtils.randomXBlockHash(data.toArray(), data.size(), epoch)));
+            log.error("test");
             return getDiffByRawHash(hash);
 
         }
@@ -1140,10 +1152,15 @@ public class BlockchainImpl implements Blockchain {
             return null;
         }
         ByteArrayWrapper key = new ByteArrayWrapper(hashlow.toArray());
+        Block cacheBlock = cache.get(key);
+        if (cacheBlock != null) {
+            return cacheBlock;
+        }
         Block b = memOrphanPool.get(key);
         if (b == null) {
             b = blockStore.getBlockByHash(hashlow, isRaw);
         }
+        cache.put(key,b);
         return b;
     }
 
@@ -1410,16 +1427,17 @@ public class BlockchainImpl implements Blockchain {
         if (checkLoop == null) {
             return;
         }
+        // TODO:period 是优化项
         checkLoopFuture = checkLoop.scheduleAtFixedRate(this::checkState, 0, period, TimeUnit.MILLISECONDS);
     }
 
     public void checkState() {
         // TODO:检查extra
-        checkExtra();
+        checkOrphan();
         checkMain();
     }
 
-    public void checkExtra() {
+    public void checkOrphan() {
         long nblk = xdagStats.nnoref / 11;
         if (nblk > 0) {
             boolean b = (nblk % 61) > (RandomUtils.nextLong() % 61);

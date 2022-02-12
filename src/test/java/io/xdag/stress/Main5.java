@@ -13,6 +13,7 @@ import io.xdag.stress.common.BlockResult;
 import io.xdag.stress.common.JsonCall;
 import io.xdag.stress.common.ProgressBar;
 import io.xdag.stress.common.SendBlockResult;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.Security;
 import java.util.ArrayList;
@@ -20,23 +21,25 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import jnr.a64asm.SYSREG_CODE;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import okhttp3.Response;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-public class Main {
+public class Main5 {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
     private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
     private static SECP256K1.SecretKey secretkey_1 = SECP256K1.SecretKey.fromInteger(private_1);
     private static final Config config = new DevnetConfig();
+    private static Gson gson = new Gson();
 
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-    public static void main(String[] args) {
-
-        int num = 1000000;
+        int num = 200000;
         ProgressBar generateBar = new ProgressBar(num,30);
         ProgressBar sendBar = new ProgressBar(num,30);
         ProgressBar searchBar = new ProgressBar(num,30);
@@ -60,6 +63,8 @@ public class Main {
             long xdagTime = System.currentTimeMillis()+i*10;
             Block b = new Block(config, xdagTime, null, null, false, null, null, -1);
             b.signOut(addrKey);
+            // 预加载
+            b.getXdagBlock();
             blocks.add(b);
             generateBar.showBarByPoint("创建区块中:",i+1);
         }
@@ -69,8 +74,8 @@ public class Main {
 
 
         // 2. 发起请求。
+        JsonCall jsonCall = new JsonCall();
         for (int i = 0; i< num;i++) {
-            JsonCall jsonCall = new JsonCall();
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("method", "xdag_sendRawTransaction");
             jsonObject.put("jsonrpc", "2.0");
@@ -78,36 +83,26 @@ public class Main {
             List<String> list = new ArrayList<>();
             list.add(blocks.get(i).getXdagBlock().getData().toUnprefixedHexString());
             jsonObject.put("params", list);
-            String res = jsonCall.post(url, jsonObject.toString());
-
-            Gson gson=new Gson();
-            SendBlockResult result = gson.fromJson(res, SendBlockResult.class);
-            if(result.getResult().getStatus().equals(IMPORTED_NOT_BEST)) {
-                sendSuccess++;
-            } else if (result.getResult().getStatus().equals(IMPORTED_BEST)) {
-                sendSuccessBecomeMain++;
-            }else if (result.getResult().getStatus().equals(EXIST)) {
-                sendSuccessExist ++;
-            }
-//            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis());
+            jsonCall.postASync(url, jsonObject.toString());
             sendBar.showBarByPoint("发送区块中:",i+1);
 
         }
         System.out.println();
         System.out.print(new Date(System.currentTimeMillis()));
-        System.out.printf(" 全部发送完成，%d个发送成功，%d个已经存在，%d个异常，开始检查是否上链...\n",sendSuccess+sendSuccessBecomeMain,sendSuccessExist,num-(sendSuccess+sendSuccessBecomeMain+sendSuccessExist));        // 3. 定时查询区块是否加入
+        System.out.println(" 全部发送完成，开始检查是否上链...");
+        // 3. 定时查询区块是否加入
         long ms = 64*1000;
         long currentTime;
+        List<CompletableFuture<Response>> futures = new ArrayList<>();
+        CompletableFuture<Integer> onChainAcceptedFuture = new CompletableFuture<>();
         do {
             currentTime = System.currentTimeMillis();
             if (currentTime % ms == 0) {
-                onChainAccepted = 0;
-                onChainRejected = 0;
-                onChainMain = 0;
+                futures.clear();
                 for (int i = 0; i < num; i++) {
                     searchBar.showBarByPoint("查询中:",i+1);
                     // 发起请求
-                    JsonCall jsonCall = new JsonCall();
+                    jsonCall = new JsonCall();
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put("method", "xdag_getBlockStatus");
                     jsonObject.put("jsonrpc", "2.0");
@@ -115,26 +110,49 @@ public class Main {
                     List<String> list = new ArrayList<>();
                     list.add(blocks.get(i).getHashLow().toUnprefixedHexString());
                     jsonObject.put("params", list);
-                    String res = jsonCall.post(url, jsonObject.toString());
-                    if( res != null) {
-//                    System.out.println(res);
-                        Gson gson = new Gson();
-                        BlockResult result = gson.fromJson(res, BlockResult.class);
-                        String status = result.getResult().getStatus();
-                        switch (status) {
-                            case "Accepted" -> onChainAccepted++;
-                            case "Rejected" -> onChainRejected++;
-                            case "Main" -> onChainMain++;
-                        }
-//                        if (status.equals("Accepted") || status.equals("Rejected") || status.equals("Main")) {
-//                            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis()-map.get(blocks.get(i).getHashLow()));
-//                        }
-                    }
+                    CompletableFuture<Response> res = jsonCall.postASyncAndGetFuture(url, jsonObject.toString());
+                    futures.add(res);
                 }
-                System.out.printf("\n剩余 %d个 pending状态\n",num - (onChainAccepted + onChainRejected + onChainMain));
+                CompletableFuture<Void> allofFutures = CompletableFuture.allOf(
+                        futures.toArray(new CompletableFuture[futures.size()])
+                );
+
+                CompletableFuture<List<String>> allResponse = allofFutures.thenApply(v->{
+                    return futures.stream().map(future -> {
+                        try {
+                            return future.get().body().string();
+                        } catch (IOException | InterruptedException | ExecutionException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }).collect(Collectors.toList());
+                });
+
+                onChainAcceptedFuture = allResponse.thenApply(
+                  response -> {
+                      int i = 0;
+                      for (String res : response) {
+                          BlockResult result = gson.fromJson(res, BlockResult.class);
+                          String status = result.getResult().getStatus();
+                          if (status.equals("Accepted") || status.equals("Rejected") || status.equals("Main")) {
+                              i++;
+                          }
+                      }
+                      return i;
+                  }
+                );
+                try {
+                    onChainAccepted = onChainAcceptedFuture.get();
+                    System.out.println("\n"+new Date(System.currentTimeMillis()));
+                    System.out.printf("已处理%d个区块\n",onChainAccepted);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
             }
-        } while (onChainAccepted + onChainRejected + onChainMain != num);
+        } while (onChainAccepted != num);
         System.out.print(new Date(System.currentTimeMillis()));
-        System.out.printf(" %d个区块成功上链,%d个区块被拒绝,%d个区块成为主块\n",onChainAccepted,onChainRejected,onChainMain);
+        System.out.printf(" %d个区块成功上链\n",onChainAccepted);
     }
 }
