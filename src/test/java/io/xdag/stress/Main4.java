@@ -1,5 +1,4 @@
 package io.xdag.stress;
-
 import static io.xdag.core.ImportResult.EXIST;
 import static io.xdag.core.ImportResult.IMPORTED_BEST;
 import static io.xdag.core.ImportResult.IMPORTED_NOT_BEST;
@@ -27,7 +26,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-public class Main2 {
+public class Main4 {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
     private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
@@ -72,25 +71,13 @@ public class Main2 {
             List<String> list = new ArrayList<>();
             list.add(b.getXdagBlock().getData().toUnprefixedHexString());
             jsonObject.put("params", list);
-
-            // 1.3 处理响应
-            String res = jsonCall.post(url, jsonObject.toString());
-            Gson gson=new Gson();
-            SendBlockResult result = gson.fromJson(res, SendBlockResult.class);
-            if(result.getResult().getStatus().equals(IMPORTED_NOT_BEST)) {
-                sendSuccess++;
-            } else if (result.getResult().getStatus().equals(IMPORTED_BEST)) {
-                sendSuccessBecomeMain++;
-            } else if (result.getResult().getStatus().equals(EXIST)) {
-                sendSuccessExist ++;
-            }
-//            map.put(b.getHashLow(),System.currentTimeMillis());
-
+            // 1.3 rpc发送
+            jsonCall.postASync(url, jsonObject.toString());
             generateBar.showBarByPoint("创建发送中:",i+1);
         }
         System.out.println();
         System.out.print(new Date(System.currentTimeMillis()));
-        System.out.printf(" 全部发送完成，%d个发送成功，%d个已经存在，%d个异常，开始检查是否上链...\n",sendSuccess+sendSuccessBecomeMain,sendSuccessExist,num-(sendSuccess+sendSuccessBecomeMain+sendSuccessExist));
+        System.out.println(" 全部发送完成，开始检查是否上链...");
         // 3. 定时查询区块是否加入
         long ms = 64*1000;
         long currentTime = System.currentTimeMillis();
@@ -139,3 +126,4 @@ public class Main2 {
 //        }
     }
 }
+
