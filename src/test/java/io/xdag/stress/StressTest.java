@@ -1,9 +1,5 @@
 package io.xdag.stress;
 
-import static io.xdag.core.ImportResult.EXIST;
-import static io.xdag.core.ImportResult.IMPORTED_BEST;
-import static io.xdag.core.ImportResult.IMPORTED_NOT_BEST;
-
 import cn.hutool.json.JSONObject;
 import com.google.gson.Gson;
 import io.xdag.config.Config;
@@ -12,7 +8,6 @@ import io.xdag.core.Block;
 import io.xdag.stress.common.BlockResult;
 import io.xdag.stress.common.JsonCall;
 import io.xdag.stress.common.ProgressBar;
-import io.xdag.stress.common.SendBlockResult;
 import java.math.BigInteger;
 import java.security.Security;
 import java.util.ArrayList;
@@ -24,8 +19,9 @@ import java.util.Map;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Test;
 
-public class MainRemoveAccetped {
+public class StressTest {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
     private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
@@ -33,8 +29,9 @@ public class MainRemoveAccetped {
     private static final Config config = new DevnetConfig();
 
 
-    public static void main(String[] args) {
-
+//    @Test
+    public void testStress() {
+        // 1. 压测区块数量
         int num = 200000;
         ProgressBar generateBar = new ProgressBar(num,30);
         ProgressBar sendBar = new ProgressBar(num,30);
@@ -50,7 +47,7 @@ public class MainRemoveAccetped {
         Map<Bytes32,Long> map = new HashMap<>();
 
 
-        // 1. 创建区块
+        // 2. 创建区块
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.printf(" 创建%d个区块...\n",num);
         for (int i = 0; i < num;i++) {
@@ -66,7 +63,7 @@ public class MainRemoveAccetped {
         System.out.printf(" 创建完成%d个区块\n",num);
 
 
-        // 2. 发起请求。
+        // 3. 发起请求。
         for (int i = 0; i< num;i++) {
             JsonCall jsonCall = new JsonCall();
             JSONObject jsonObject = new JSONObject();
@@ -76,6 +73,7 @@ public class MainRemoveAccetped {
             List<String> list = new ArrayList<>();
             list.add(blocks.get(i).getXdagBlock().getData().toUnprefixedHexString());
             jsonObject.put("params", list);
+            // 3.1 同步模型发送
 //            String res = jsonCall.post(url, jsonObject.toString());
 //
 //            Gson gson=new Gson();
@@ -89,6 +87,7 @@ public class MainRemoveAccetped {
 //            }
 ////            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis());
 //            sendBar.showBarByPoint("发送区块中:",i+1);
+            // 3.2 异步模型发送
             jsonCall.postASync(url, jsonObject.toString());
             sendBar.showBarByPoint("发送区块中:",i+1);
 
@@ -96,6 +95,7 @@ public class MainRemoveAccetped {
         System.out.println();
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.printf(" 全部发送完成，%d个发送成功，%d个已经存在，%d个异常，开始检查是否上链...\n",sendSuccess+sendSuccessBecomeMain,sendSuccessExist,num-(sendSuccess+sendSuccessBecomeMain+sendSuccessExist));        // 3. 定时查询区块是否加入
+
         long ms = 300*1000;
         long currentTime;
         do {
@@ -104,7 +104,7 @@ public class MainRemoveAccetped {
                 onChainAccepted = 0;
                 onChainRejected = 0;
                 onChainMain = 0;
-                System.out.println("带查询数量："+blocks.size());
+                System.out.println("待查询数量："+blocks.size());
                 ProgressBar searchBar = new ProgressBar(blocks.size(),30);
                 int i = 0;
                 Iterator<Block> iterator = blocks.iterator();

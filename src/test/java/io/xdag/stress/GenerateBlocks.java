@@ -22,6 +22,7 @@ import java.util.Map;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Test;
 
 public class GenerateBlocks {
     static { Security.addProvider(new BouncyCastleProvider());  }
@@ -30,12 +31,14 @@ public class GenerateBlocks {
     private static SECP256K1.SecretKey secretkey_1 = SECP256K1.SecretKey.fromInteger(private_1);
     private static final Config config = new DevnetConfig();
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+
+    @Test
+    public void generateBlocksData() throws IOException, ClassNotFoundException {
         int num = 200000;
+
         ProgressBar generateBar = new ProgressBar(num,30);
 
         List<byte[]> blocks = new ArrayList<>();
-        List<Block> blocksOrigin = new ArrayList<>();
 
         // 1. 创建区块
         System.out.print(new Date(System.currentTimeMillis()));
@@ -45,7 +48,6 @@ public class GenerateBlocks {
             long xdagTime = System.currentTimeMillis()+i*10;
             Block b = new Block(config, xdagTime, null, null, false, null, null, -1);
             b.signOut(addrKey);
-            blocksOrigin.add(b);
             blocks.add(b.getXdagBlock().getData().toArray());
             generateBar.showBarByPoint("创建区块中:",i+1);
         }
@@ -55,7 +57,7 @@ public class GenerateBlocks {
         System.out.printf(" 创建完成%d个区块\n",num);
 
 
-        File file = new File("/Users/paulochen/blockdata/block.data");
+        File file = new File("block.data");
         if(!file.exists()){
             file.createNewFile();
         }
@@ -65,30 +67,6 @@ public class GenerateBlocks {
 
         objectOutputStream.writeObject(blocks);
         outStream.close();
-
-        FileInputStream freader = new FileInputStream("/Users/paulochen/blockdata/block.data");
-
-        ObjectInputStream objectInputStream = new ObjectInputStream(freader);
-
-        List<byte[]> blocks1 = new ArrayList<>();
-        blocks1 = (List<byte[]>) objectInputStream.readObject();
-        System.out.println(blocks1.size());
-
-        List<Block> blocks2 = new ArrayList<>();
-        for (byte[] data:blocks1) {
-            Block block = new Block(new XdagBlock(data));
-            blocks2.add(block);
-        }
-
-        for (int i = 0;i<num;i++) {
-            if (blocksOrigin.get(i).getHash().compareTo(blocks2.get(i).getHash()) != 0) {
-                System.out.println("false");
-            }
-        }
-
-        System.out.println("true");
-
-//        System.out.println(blocks1.get(0));
 
     }
 
