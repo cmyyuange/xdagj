@@ -18,15 +18,14 @@ import java.security.Security;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import jnr.a64asm.SYSREG_CODE;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-public class Main {
+public class MainRemoveAccetped {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
     private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
@@ -39,7 +38,6 @@ public class Main {
         int num = 200000;
         ProgressBar generateBar = new ProgressBar(num,30);
         ProgressBar sendBar = new ProgressBar(num,30);
-        ProgressBar searchBar = new ProgressBar(num,30);
 
         int sendSuccess = 0;
         int sendSuccessBecomeMain = 0;
@@ -58,7 +56,7 @@ public class Main {
         for (int i = 0; i < num;i++) {
             SECP256K1.KeyPair addrKey = SECP256K1.KeyPair.fromSecretKey(secretkey_1);
             long xdagTime = System.currentTimeMillis()+i*10;
-            Block b = new Block(config, xdagTime, null, null, false, null, "null", -1);
+            Block b = new Block(config, xdagTime, null, null, false, null, null, -1);
             b.signOut(addrKey);
             blocks.add(b);
             generateBar.showBarByPoint("创建区块中:",i+1);
@@ -78,25 +76,27 @@ public class Main {
             List<String> list = new ArrayList<>();
             list.add(blocks.get(i).getXdagBlock().getData().toUnprefixedHexString());
             jsonObject.put("params", list);
-            String res = jsonCall.post(url, jsonObject.toString());
-
-            Gson gson=new Gson();
-            SendBlockResult result = gson.fromJson(res, SendBlockResult.class);
-            if(result.getResult().getStatus().equals(IMPORTED_NOT_BEST)) {
-                sendSuccess++;
-            } else if (result.getResult().getStatus().equals(IMPORTED_BEST)) {
-                sendSuccessBecomeMain++;
-            }else if (result.getResult().getStatus().equals(EXIST)) {
-                sendSuccessExist ++;
-            }
-//            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis());
+//            String res = jsonCall.post(url, jsonObject.toString());
+//
+//            Gson gson=new Gson();
+//            SendBlockResult result = gson.fromJson(res, SendBlockResult.class);
+//            if(result.getResult().getStatus().equals(IMPORTED_NOT_BEST)) {
+//                sendSuccess++;
+//            } else if (result.getResult().getStatus().equals(IMPORTED_BEST)) {
+//                sendSuccessBecomeMain++;
+//            }else if (result.getResult().getStatus().equals(EXIST)) {
+//                sendSuccessExist ++;
+//            }
+////            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis());
+//            sendBar.showBarByPoint("发送区块中:",i+1);
+            jsonCall.postASync(url, jsonObject.toString());
             sendBar.showBarByPoint("发送区块中:",i+1);
 
         }
         System.out.println();
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.printf(" 全部发送完成，%d个发送成功，%d个已经存在，%d个异常，开始检查是否上链...\n",sendSuccess+sendSuccessBecomeMain,sendSuccessExist,num-(sendSuccess+sendSuccessBecomeMain+sendSuccessExist));        // 3. 定时查询区块是否加入
-        long ms = 64*1000;
+        long ms = 300*1000;
         long currentTime;
         do {
             currentTime = System.currentTimeMillis();
@@ -104,8 +104,14 @@ public class Main {
                 onChainAccepted = 0;
                 onChainRejected = 0;
                 onChainMain = 0;
-                for (int i = 0; i < num; i++) {
-                    searchBar.showBarByPoint("查询中:",i+1);
+                System.out.println("带查询数量："+blocks.size());
+                ProgressBar searchBar = new ProgressBar(blocks.size(),30);
+                int i = 0;
+                Iterator<Block> iterator = blocks.iterator();
+                while (iterator.hasNext()) {
+                    Block block = iterator.next();
+                    i++;
+                    searchBar.showBarByPoint("查询中:",i);
                     // 发起请求
                     JsonCall jsonCall = new JsonCall();
                     JSONObject jsonObject = new JSONObject();
@@ -113,7 +119,7 @@ public class Main {
                     jsonObject.put("jsonrpc", "2.0");
                     jsonObject.put("id", 1);
                     List<String> list = new ArrayList<>();
-                    list.add(blocks.get(i).getHashLow().toUnprefixedHexString());
+                    list.add(block.getHashLow().toUnprefixedHexString());
                     jsonObject.put("params", list);
                     String res = jsonCall.post(url, jsonObject.toString());
                     if( res != null) {
@@ -122,9 +128,21 @@ public class Main {
                         BlockResult result = gson.fromJson(res, BlockResult.class);
                         String status = result.getResult().getStatus();
                         switch (status) {
-                            case "Accepted" -> onChainAccepted++;
-                            case "Rejected" -> onChainRejected++;
-                            case "Main" -> onChainMain++;
+                            case "Accepted" :{
+                                onChainAccepted++;
+                                iterator.remove();
+                                break;
+                            }
+                            case "Rejected" : {
+                                onChainRejected++;
+                                iterator.remove();
+                                break;
+                            }
+                            case "Main" : {
+                                onChainMain++;
+                                iterator.remove();
+                                break;
+                            }
                         }
 //                        if (status.equals("Accepted") || status.equals("Rejected") || status.equals("Main")) {
 //                            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis()-map.get(blocks.get(i).getHashLow()));

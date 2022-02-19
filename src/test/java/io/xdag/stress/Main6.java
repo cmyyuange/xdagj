@@ -34,7 +34,7 @@ public class Main6 {
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-        int num = 100000;
+        int num = 200000;
         ProgressBar generateBar = new ProgressBar(num,30);
         ProgressBar sendBar = new ProgressBar(num,30);
         ProgressBar searchBar = new ProgressBar(num,30);
@@ -87,7 +87,7 @@ public class Main6 {
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.println(" 全部发送完成，开始检查是否上链...");
         // 3. 定时查询区块是否加入
-        long ms = 600*1000;
+        long ms = 64*1000;
         long currentTime;
         do {
             currentTime = System.currentTimeMillis();
@@ -111,14 +111,19 @@ public class Main6 {
                     if( res != null) {
                         Gson gson = new Gson();
                         BlockResult result = gson.fromJson(res, BlockResult.class);
-                        String status = result.getResult().getStatus();
-                        if (status == null) {
-                            System.out.println(res);
+                        if (result.getResult() == null) {
+                            System.out.println("result:"+res);
                         } else {
-                            switch (status) {
-                                case "Accepted" -> onChainAccepted++;
-                                case "Rejected" -> onChainRejected++;
-                                case "Main" -> onChainMain++;
+                            String status = result.getResult().getStatus();
+                            if (status == null) {
+                                System.out.println("status:"+status);
+                            } else {
+                                switch (status) {
+                                    case "Accepted" -> onChainAccepted++;
+                                    case "Rejected" -> onChainRejected++;
+                                    case "Main" -> onChainMain++;
+                                    case "NotExist" -> System.out.println("not exist");
+                                }
                             }
                         }
                     } else {
