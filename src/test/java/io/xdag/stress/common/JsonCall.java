@@ -42,7 +42,7 @@ public class JsonCall {
             Response response = client.newCall(request).execute();
             return response.body().string();
         } catch (IOException e) {
-            logger.error(e.getMessage());
+            logger.debug(e.getMessage());
             return null;
         }
     }
@@ -60,7 +60,7 @@ public class JsonCall {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.error("failure");
+                logger.debug("failure");
             }
 
             @Override
@@ -84,7 +84,7 @@ public class JsonCall {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.error("failure");
+                logger.debug("failure");
             }
 
             @Override

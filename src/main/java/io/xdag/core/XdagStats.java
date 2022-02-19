@@ -41,7 +41,7 @@ public class XdagStats {
     public int nhosts;
     public int totalnhosts;
     public long nwaitsync;
-    public long nnoref;
+    public volatile long nnoref;
     public long nextra;
     public long maintime;
     public long balance;

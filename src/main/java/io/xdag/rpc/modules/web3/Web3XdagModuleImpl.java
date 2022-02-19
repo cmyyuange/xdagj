@@ -162,6 +162,9 @@ public class Web3XdagModuleImpl implements Web3XdagModule {
     @Override
     public BlockStatusDTO xdag_getBlockStatus(String hash) throws Exception {
         Block block = kernel.getBlockchain().getBlockByHash(Bytes32.fromHexString(hash),false);
+        if (block == null) {
+            return new BlockStatusDTO("","NotExist");
+        }
         return new BlockStatusDTO(block.getHash().toString(), getStateByFlags(block.getInfo().flags));
     }
 

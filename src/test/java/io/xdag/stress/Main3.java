@@ -41,7 +41,6 @@ public class Main3 {
     private static final Config config = new DevnetConfig();
     private static final Gson gson=new Gson();
 
-    @Test
     public void testSendblocks() {
         int num = 100000;
 
