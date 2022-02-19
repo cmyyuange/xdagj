@@ -10,39 +10,41 @@ import io.xdag.stress.common.BlockResult;
 import io.xdag.stress.common.JsonCall;
 import io.xdag.stress.common.ProgressBar;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Test;
 
-public class MainRemoveAccetpetdAndLoad {
+public class StressTestByLoadBlocks {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
     private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
     private static SECP256K1.SecretKey secretkey_1 = SECP256K1.SecretKey.fromInteger(private_1);
     private static final Config config = new DevnetConfig();
 
+    private static final String fileName = "block.data";
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
 
-        System.out.println("开始加载区块");
+    @Test
+    public void stressTest() throws IOException, ClassNotFoundException {
+        System.out.print(new Date(System.currentTimeMillis()));
+        System.out.println(" 开始加载区块");
 
-        FileInputStream freader = new FileInputStream("/Users/paulochen/blockdata/block.data");
+        InputStream freader = StressTestByLoadBlocks.class.getClassLoader().getResourceAsStream(fileName);
 
         ObjectInputStream objectInputStream = new ObjectInputStream(freader);
 
         List<byte[]> blocks1 = new ArrayList<>();
         blocks1 = (List<byte[]>) objectInputStream.readObject();
+
+        objectInputStream.close();
 
         List<Block> blocks = new ArrayList<>();
         for (byte[] data:blocks1) {
@@ -53,11 +55,9 @@ public class MainRemoveAccetpetdAndLoad {
 
         Block lastBlock = blocks.get(num-1);
 
-        ProgressBar sendBar = new ProgressBar(num,30);
-
-
         // 1. 创建区块
-        System.out.printf("加载完成%d个区块\n",num);
+        System.out.print(new Date(System.currentTimeMillis()));
+        System.out.printf(" 加载完成%d个区块\n",num);
 
 
         // 2. 发起请求。
@@ -84,10 +84,8 @@ public class MainRemoveAccetpetdAndLoad {
 ////            map.put(blocks.get(i).getHashLow(),System.currentTimeMillis());
 //            sendBar.showBarByPoint("发送区块中:",i+1);
             jsonCall.postASync(url, jsonObject.toString());
-            sendBar.showBarByPoint("发送区块中:",i+1);
-
         }
-        System.out.println();
+
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.println(" 全部发送完成，开始检查是否上链...");
         // 3. 查询区块是否加入

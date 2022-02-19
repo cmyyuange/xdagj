@@ -89,8 +89,7 @@ public class OrphanPool {
         }
     }
 
-    // TODO 创建区块跟新增区块时都依赖 需要加锁
-    public synchronized void deleteByHash(byte[] hashlow) {
+    public void deleteByHash(byte[] hashlow) {
         log.debug("deleteByhash");
         orphanSource.delete(BytesUtils.merge(ORPHAN_PREFEX, hashlow));
         long currentsize = BytesUtils.bytesToLong(orphanSource.get(ORPHAN_SIZE), 0, false);

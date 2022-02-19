@@ -24,11 +24,6 @@
 
 package io.xdag.db.rocksdb;
 
-import static org.rocksdb.RateLimiter.DEFAULT_AUTOTUNE;
-import static org.rocksdb.RateLimiter.DEFAULT_FAIRNESS;
-import static org.rocksdb.RateLimiter.DEFAULT_MODE;
-import static org.rocksdb.RateLimiter.DEFAULT_REFILL_PERIOD_MICROS;
-
 import cn.hutool.core.lang.Pair;
 import com.google.common.collect.Lists;
 import io.xdag.config.Config;
@@ -58,8 +53,6 @@ import org.rocksdb.CompressionType;
 import org.rocksdb.Env;
 import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
-import org.rocksdb.RateLimiter;
-import org.rocksdb.RateLimiterMode;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RestoreOptions;
 import org.rocksdb.RocksDB;
@@ -125,9 +118,6 @@ public class RocksdbKVSource implements KVSource<byte[], byte[]> {
                 options.setLevelCompactionDynamicLevelBytes(true);
                 options.setMaxOpenFiles(config.getNodeSpec().getStoreMaxOpenFiles());
                 options.setIncreaseParallelism(config.getNodeSpec().getStoreMaxThreads());
-
-                options.setRateLimiter(new RateLimiter(1000, DEFAULT_REFILL_PERIOD_MICROS,
-                        DEFAULT_FAIRNESS, DEFAULT_MODE, DEFAULT_AUTOTUNE));
 
                 // key prefix for state node lookups
                 options.useFixedLengthPrefixExtractor(prefixSeekLength);
