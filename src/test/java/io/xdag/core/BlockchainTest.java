@@ -44,6 +44,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Lists;
+import io.xdag.BlockBuilder;
 import io.xdag.Kernel;
 import io.xdag.config.Config;
 import io.xdag.config.DevnetConfig;
@@ -65,6 +66,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.StopWatch;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -511,6 +513,36 @@ public class BlockchainTest {
             return;
         }
 
+    }
+
+
+    @Test
+    public void testStoreAddressBlock() {
+        SECP256K1.KeyPair key = SECP256K1.KeyPair.fromSecretKey(secretkey_1);
+        MockBlockchain blockchain = new MockBlockchain(kernel);
+        List<Block> blocks = new ArrayList<>();
+        StopWatch watch = new StopWatch();
+        watch.start();
+        int count = 100000;
+        for (int i = 0; i<count; i++) {
+            Block address = BlockBuilder.generateAddressBlock(config,key,new Date().getTime());
+            blocks.add(address);
+        }
+        watch.stop();
+        System.out.printf("生成耗时:%d\n",watch.getTime());
+        int times = 10;
+        int num = count/times;
+        for(int i = 0; i<times; i++) {
+            watch.reset();
+            watch.start();
+            for (int j = i*num; j < i*num+num; j++) {
+//                Block address = BlockBuilder.generateAddressBlock(config,key,new Date().getTime());
+                Block address = blocks.get(j);
+                blockchain.tryToConnect(address);
+            }
+            watch.stop();
+            System.out.printf("times:%d 耗时:%d\n",i,watch.getTime());
+        }
     }
 
 }

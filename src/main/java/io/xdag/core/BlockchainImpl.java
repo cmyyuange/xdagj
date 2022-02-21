@@ -108,7 +108,7 @@ import org.bouncycastle.util.encoders.Hex;
 @Getter
 public class BlockchainImpl implements Blockchain {
 
-    private static final int cacheSize = 100000;
+    private static final int cacheSize = 200000;
 
     private static final ThreadFactory factory = new ThreadFactory() {
         private final AtomicInteger cnt = new AtomicInteger(0);

@@ -1,5 +1,6 @@
 package io.xdag.stress;
 
+import io.xdag.BlockBuilder;
 import io.xdag.config.Config;
 import io.xdag.config.DevnetConfig;
 import io.xdag.core.Block;
@@ -46,8 +47,7 @@ public class GenerateBlocks {
         for (int i = 0; i < num;i++) {
             SECP256K1.KeyPair addrKey = SECP256K1.KeyPair.fromSecretKey(secretkey_1);
             long xdagTime = System.currentTimeMillis()+i*10;
-            Block b = new Block(config, xdagTime, null, null, false, null, null, -1);
-            b.signOut(addrKey);
+            Block b = BlockBuilder.generateAddressBlock(config,addrKey,xdagTime);
             blocks.add(b.getXdagBlock().getData().toArray());
             generateBar.showBarByPoint("创建区块中:",i+1);
         }
