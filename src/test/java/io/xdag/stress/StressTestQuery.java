@@ -1,21 +1,14 @@
 package io.xdag.stress;
 
-import static io.xdag.BlockBuilder.generateAddressBlock;
-import static io.xdag.core.ImportResult.IMPORTED_BEST;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 
 import io.xdag.Kernel;
 import io.xdag.config.Config;
 import io.xdag.config.DevnetConfig;
 import io.xdag.core.Block;
 import io.xdag.core.BlockchainImpl;
-import io.xdag.core.BlockchainTest;
 import io.xdag.core.ImportResult;
 import io.xdag.core.XdagBlock;
-import io.xdag.core.XdagTopStatus;
 import io.xdag.crypto.SampleKeys;
 import io.xdag.crypto.jni.Native;
 import io.xdag.db.DatabaseFactory;
@@ -23,8 +16,6 @@ import io.xdag.db.DatabaseName;
 import io.xdag.db.rocksdb.RocksdbFactory;
 import io.xdag.db.store.BlockStore;
 import io.xdag.db.store.OrphanPool;
-import io.xdag.stress.common.BlockResult;
-import io.xdag.stress.common.JsonCall;
 import io.xdag.wallet.Wallet;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,12 +24,10 @@ import java.math.BigInteger;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.tuweni.bytes.Bytes32;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.hyperledger.besu.crypto.SECP256K1;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -112,258 +101,68 @@ public class StressTestQuery {
         wallet.delete();
     }
 
-    @Test
-    public void stressTestQuery() throws IOException, ClassNotFoundException {
-        int splitNum = 4;
-        StopWatch stopWatch = new StopWatch();
-        System.out.println(" 开始加载区块");
-        InputStream freader = StressTestByLoadBlocks.class.getClassLoader().getResourceAsStream(fileName);
-        ObjectInputStream objectInputStream = new ObjectInputStream(freader);
-        List<byte[]> blocks1 = new ArrayList<>();
-        blocks1 = (List<byte[]>) objectInputStream.readObject();
-        objectInputStream.close();
-        List<Block> blocks = new ArrayList<>();
-        for (byte[] data:blocks1) {
-            Block block = new Block(new XdagBlock(data));
-            blocks.add(block);
-        }
-        int num = blocks1.size();
-        for (int i = 0;i<splitNum;i++) {
-
-        }
-    }
-
 
     @Test
     public void stressTest() throws IOException, ClassNotFoundException, InterruptedException {
+        int num; // 总块数
+        int addSize; // 每次增加的块数量
+        int splitNum = 4; // 分的份数
+        int searchTimes = 3; // 查询的次数
+        int searchSize = 20000; // 查询的区块hash
 
         StopWatch stopWatch = new StopWatch();
-
-        int checkNum = 30000;
         System.out.println(" 开始加载区块");
-        stopWatch.start();
+        // 1. 加载区块
         InputStream freader = StressTestByLoadBlocks.class.getClassLoader().getResourceAsStream(fileName);
         ObjectInputStream objectInputStream = new ObjectInputStream(freader);
         List<byte[]> blocks1 = new ArrayList<>();
         blocks1 = (List<byte[]>) objectInputStream.readObject();
         objectInputStream.close();
+
         List<Block> blocks = new ArrayList<>();
-
-
-        List<Bytes32> blockhash1 = new ArrayList<>();
+        List<Bytes32> blockhash = new ArrayList<>();
 
         for (byte[] data:blocks1) {
             Block block = new Block(new XdagBlock(data));
             blocks.add(block);
         }
-        int num = blocks1.size();
+        num = blocks.size();
 
-        for (int i = 0;i<checkNum;i++) {
-            blockhash1.add(blocks.get(i).getHashLow());
+        for (int i = 0;i<searchSize;i++) {
+            blockhash.add(blocks.get(i).getHashLow());
         }
 
-        stopWatch.stop();
-
-        // 1. 加载区块
-        System.out.printf(" 加载完成%d个区块\n",num);
-        System.out.printf(" blocks hash1 加载完成%d个区块\n",blockhash1.size());
-
+        System.out.printf("加载完成%d个区块\n",num);
 
         MockBlockchain mockBlockchain = new MockBlockchain(kernel);
 
-        stopWatch.reset();
-        stopWatch.start();
-        for (int i = 0; i<num/4;i++) {
-            mockBlockchain.tryToConnect(blocks.get(i));
-        }
-        stopWatch.stop();
-        System.out.println("增加到50000个区块后");
-        System.out.println("耗时"+stopWatch.getTime());
+        addSize = num/splitNum;
 
-        System.out.println("nmain:"+mockBlockchain.getXdagStats().nmain);
-        System.out.println("nblocks:"+mockBlockchain.getXdagStats().nblocks);
+        for (int i = 0; i< splitNum;i++) {
+            System.out.printf("第%d次 增加 %d 区块",i+1, addSize);
+            stopWatch.reset();
+            stopWatch.start();
+            for (int j = i*addSize; j < addSize*(i+1); j++) {
+                mockBlockchain.tryToConnect(blocks.get(j));
+            }
+            stopWatch.stop();
+            System.out.println("区块增加耗时:"+stopWatch.getTime());
+            System.out.println("当前 nmain:"+mockBlockchain.getXdagStats().nmain);
+            System.out.println("当前 nblocks:"+mockBlockchain.getXdagStats().nblocks);
 
-        // 第一次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
+            for (int z = 0; z < searchTimes ; z++) {
+                stopWatch.reset();
+                stopWatch.start();
+                System.out.println("开始查询...");
+                for (int n = 0;n<searchSize;n++) {
+                    mockBlockchain.getBlockByHash(blockhash.get(n),true);
+                }
+                stopWatch.stop();
+                System.out.println("查询耗时:"+stopWatch.getTime());
+            }
         }
-        stopWatch.stop();
-        System.out.printf("增加到50000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第二次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到50000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第三次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到50000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-
-        stopWatch.reset();
-        stopWatch.start();
-        for (int i = num/4;i<num/2; i++) {
-            mockBlockchain.tryToConnect(blocks.get(i));
-        }
-        stopWatch.stop();
-        System.out.println("增加到100000个区块后");
-        System.out.println("耗时"+stopWatch.getTime());
-        System.out.println("nmain:"+mockBlockchain.getXdagStats().nmain);
-        System.out.println("nblocks:"+mockBlockchain.getXdagStats().nblocks);
-
-        // 第一次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到100000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第二次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到100000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第三次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到100000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        stopWatch.reset();
-        stopWatch.start();
-        for (int i = num/2;i<num/2+num/4; i++) {
-            mockBlockchain.tryToConnect(blocks.get(i));
-        }
-        stopWatch.stop();
-        System.out.println("增加到150000个区块后");
-        System.out.println("耗时"+stopWatch.getTime());
-        System.out.println("nmain:"+mockBlockchain.getXdagStats().nmain);
-        System.out.println("nblocks:"+mockBlockchain.getXdagStats().nblocks);
-        // 第一次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到150000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第二次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到150000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第三次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到150000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        stopWatch.reset();
-        stopWatch.start();
-        for (int i = num/2+num/4;i<num; i++) {
-            mockBlockchain.tryToConnect(blocks.get(i));
-        }
-        stopWatch.stop();
-        System.out.println("增加到200000个区块后");
-        System.out.println("耗时"+stopWatch.getTime());
-        System.out.println("nmain:"+mockBlockchain.getXdagStats().nmain);
-        System.out.println("nblocks:"+mockBlockchain.getXdagStats().nblocks);
-        // 第一次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到200000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第二次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到200000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
-        // 第三次查询
-        stopWatch.reset();
-        stopWatch.start();
-        System.out.println("开始查询");
-        for (int i = 0;i<checkNum;i++) {
-            mockBlockchain.getBlockByHash(blockhash1.get(i),true);
-        }
-        stopWatch.stop();
-        System.out.printf("增加到200000个区块后，查询前%d个区块\n",checkNum);
-        System.out.println("耗时"+stopWatch.getTime());
-
     }
 
-
-    @Test
-    public void testAddressBlock() {
-        org.hyperledger.besu.crypto.SECP256K1.KeyPair key = SECP256K1.KeyPair.create(secretkey_1);
-        Block addressBlock = generateAddressBlock(config, key, new Date().getTime());
-        MockBlockchain blockchain = new MockBlockchain(kernel);
-        ImportResult result = blockchain.tryToConnect(addressBlock);
-        assertSame(result, IMPORTED_BEST);
-        XdagTopStatus stats = blockchain.getXdagTopStatus();
-        assertNotNull(stats);
-        assertArrayEquals(addressBlock.getHashLow().toArray(), stats.getTop());
-        Block storedBlock = blockchain.getBlockByHash(Bytes32.wrap(stats.getTop()), false);
-        assertNotNull(storedBlock);
-        assertArrayEquals(addressBlock.getHashLow().toArray(), storedBlock.getHashLow().toArray());
-    }
 
     static class MockBlockchain extends BlockchainImpl {
 
@@ -373,15 +172,12 @@ public class StressTestQuery {
 
         @Override
         public synchronized ImportResult tryToConnect(Block block) {
-//            saveBlock(block);
-            checkOrphan();
+            checkOrphan(); // 处理孤块
             return super.tryToConnect(block);
-
-//            return ImportResult.IMPORTED_NOT_BEST;
         }
+
         @Override
         public void startCheckMain(long period) {
-//            super.startCheckMain(period);
         }
 
         @Override
