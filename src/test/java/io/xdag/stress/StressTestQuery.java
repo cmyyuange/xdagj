@@ -102,7 +102,7 @@ public class StressTestQuery {
         StopWatch stopWatch = new StopWatch();
         System.out.println(" 开始加载区块");
         // 1. 加载区块
-        InputStream freader = StressTestByLoadBlocks.class.getClassLoader().getResourceAsStream(fileName);
+        InputStream freader = StressTestQuery.class.getClassLoader().getResourceAsStream(fileName);
         ObjectInputStream objectInputStream = new ObjectInputStream(freader);
         List<byte[]> blocks1 = new ArrayList<>();
         blocks1 = (List<byte[]>) objectInputStream.readObject();
@@ -138,6 +138,7 @@ public class StressTestQuery {
             System.out.println("区块增加耗时:"+stopWatch.getTime());
             System.out.println("当前 nmain:"+mockBlockchain.getXdagStats().nmain);
             System.out.println("当前 nblocks:"+mockBlockchain.getXdagStats().nblocks);
+            System.out.println("当前 nnoref:"+mockBlockchain.getXdagStats().nnoref);
 
             for (int z = 0; z < searchTimes ; z++) {
                 stopWatch.reset();
