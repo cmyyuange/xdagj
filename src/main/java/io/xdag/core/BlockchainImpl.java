@@ -333,52 +333,67 @@ public class BlockchainImpl implements Blockchain {
         return tryToConnectBlock(block);
     }
 
+
+    private boolean checkBlockHeader(Block block) {
+        boolean res = true;
+        long type = block.getType() & 0xf;
+        if (kernel.getConfig() instanceof MainnetConfig) {
+            if (type != XDAG_FIELD_HEAD.asByte()) {
+                res = false;
+            }
+        } else {
+            if (type != XDAG_FIELD_HEAD_TEST.asByte()) {
+                res = false;
+            }
+        }
+        return res;
+    }
+
+    private boolean checkBlockTime(Block block) {
+        boolean res = true;
+        if (block.getTimestamp() > (XdagTime.getCurrentTimestamp() + MAIN_CHAIN_PERIOD / 4)
+                || block.getTimestamp() < kernel.getConfig().getXdagEra()
+//                    || (limit && timestamp - tmpNodeBlock.time > limit)
+        ) {
+            res = false;
+        }
+        return res;
+    }
+
     private synchronized ImportResult tryToConnectBlock(Block block) {
         // TODO: if current height is snapshot height, we need change logic to process new block
 
         try {
             ImportResult result = ImportResult.IMPORTED_NOT_BEST;
 
-            long type = block.getType() & 0xf;
-            if (kernel.getConfig() instanceof MainnetConfig) {
-                if (type != XDAG_FIELD_HEAD.asByte()) {
-                    result = ImportResult.ERROR;
-                    result.setErrorInfo("Block type error, is not a mainnet block");
-                    return result;
-                }
-            } else {
-                if (type != XDAG_FIELD_HEAD_TEST.asByte()) {
-                    result = ImportResult.ERROR;
-                    result.setErrorInfo("Block type error, is not a testnet block");
-                    return result;
-                }
+            // 区块头 网络类型校验
+            if (!checkBlockHeader(block)) {
+                result = ImportResult.ERROR;
+                result.setErrorInfo("Block type error, is not a testnet block");
+                return result;
             }
-
-            if (block.getTimestamp() > (XdagTime.getCurrentTimestamp() + MAIN_CHAIN_PERIOD / 4)
-                    || block.getTimestamp() < kernel.getConfig().getXdagEra()
-//                    || (limit && timestamp - tmpNodeBlock.time > limit)
-            ) {
+            // 区块时间校验
+            if (!checkBlockTime(block)) {
                 result = ImportResult.INVALID_BLOCK;
                 result.setErrorInfo("Block's time is illegal");
                 return result;
             }
-
+            // 区块是否存在
             if (isExist(block.getHashLow())) {
                 return ImportResult.EXIST;
             }
-
+            // 区块是否为extrablock
             if (isExtraBlock(block)) {
                 updateBlockFlag(block, BI_EXTRA, true);
             }
 
-            List<Address> all = block.getLinks().stream().distinct().collect(Collectors.toList());
             // 检查区块的引用区块是否都存在,对所有input和output放入block（可能在pending或db中取出
+            List<Address> all = block.getLinks().stream().distinct().collect(Collectors.toList());
             for (Address ref : all) {
                 if (ref != null) {
                     // TODO:涉及存储
                     Block refBlock = getBlockByHash(ref.getHashLow(), false);
                     if (refBlock == null) {
-//                        log.debug("No Parent " + Hex.toHexString(ref.getHashLow()));
                         result = ImportResult.NO_PARENT;
                         result.setHashlow(ref.getHashLow());
                         result.setErrorInfo("Block have no parent for " + result.getHashlow().toHexString());
@@ -391,10 +406,6 @@ public class BlockchainImpl implements Blockchain {
                             result.setErrorInfo("Ref block's time >= block's time");
                             return result;
                         }
-
-//                        if (!ref.getAmount().equals(BigInteger.ZERO)) {
-//                            updateBlockFlag(block, BI_EXTRA, false);
-//                        }
                     }
 
                 }
@@ -406,10 +417,6 @@ public class BlockchainImpl implements Blockchain {
                         (block.getInfo().flags & BI_EXTRA) != 0
                                 ? OrphanRemoveActions.ORPHAN_REMOVE_EXTRA
                                 : OrphanRemoveActions.ORPHAN_REMOVE_NORMAL);
-                // TODO:add backref
-                // if(!all.get(i).getAmount().equals(BigInteger.ZERO)){
-                // Block blockRef = getBlockByHash(all.get(i).getHashLow(),false);
-                // }
             }
 
             // 检查当前主链
@@ -467,18 +474,11 @@ public class BlockchainImpl implements Blockchain {
             // 新增区块
             xdagStats.nblocks++;
             xdagStats.totalnblocks = Math.max(xdagStats.nblocks, xdagStats.totalnblocks);
-//            if (xdagStats.getTotalnblocks() < xdagStats.getNblocks()) {
-//                xdagStats.setTotalnblocks(xdagStats.getNblocks());
-//            }
 
-            //orphan (hash , block)
-//            log.debug("======New block waiting to link======,{}",Hex.toHexString(block.getHashLow()));
             if ((block.getInfo().flags & BI_EXTRA) != 0) {
-//                log.debug("block:{} is extra, put it into memOrphanPool waiting to link.", Hex.toHexString(block.getHashLow()));
                 memOrphanPool.put(new ByteArrayWrapper(block.getHashLow().toArray()), block);
                 xdagStats.nextra++;
             } else {
-//                log.debug("block:{} is extra, put it into orphanPool waiting to link.", Hex.toHexString(block.getHashLow()));
                 saveBlock(block);
                 orphanPool.addOrphan(block);
                 xdagStats.nnoref++;
