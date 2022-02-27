@@ -254,7 +254,7 @@ public class XdagPow implements PoW, Listener, Runnable {
         if (!this.isRunning) {
             return;
         }
-        if (globalPretop == null || !equalBytes(pretop.toArray(), globalPretop.toArray())) {
+        if (!equalBytes(pretop.toArray(), globalPretop.toArray())) {
             globalPretop = Bytes32.wrap(blockchain.getXdagTopStatus().getPreTop());
             events.add(new Event(Event.Type.NEW_PRETOP, pretop));
         }

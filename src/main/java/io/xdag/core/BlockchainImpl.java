@@ -45,8 +45,6 @@ import static io.xdag.utils.BasicUtils.getDiffByHash;
 import static io.xdag.utils.BasicUtils.getHashlowByHash;
 import static io.xdag.utils.BytesUtils.equalBytes;
 
-
-import cn.hutool.cache.impl.LRUCache;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLong;
 import io.xdag.Kernel;
@@ -107,8 +105,6 @@ import org.bouncycastle.util.encoders.Hex;
 @Getter
 public class BlockchainImpl implements Blockchain {
 
-    private static final int cacheSize = 1000;
-
     private static final ThreadFactory factory = new ThreadFactory() {
         private final AtomicInteger cnt = new AtomicInteger(0);
 
@@ -141,12 +137,6 @@ public class BlockchainImpl implements Blockchain {
     private SnapshotChainStore snapshotChainStore;
     private long snapshotHeight;
     private SnapshotJ snapshotJ;
-
-
-    // rawblock
-    private final LRUCache<ByteArrayWrapper,Block> cache = new LRUCache<>(cacheSize);
-    // blockinfo
-    private final LRUCache<ByteArrayWrapper,Block> cacheBlockInfo = new LRUCache<>(cacheSize);
 
     @Getter
     private byte[] preSeed;
@@ -1119,37 +1109,10 @@ public class BlockchainImpl implements Blockchain {
             return null;
         }
         ByteArrayWrapper key = new ByteArrayWrapper(hashlow.toArray());
-
-//        if (isRaw) {
-//            // 从cache获取
-//            Block cacheBlock = cache.get(key);
-//            if (cacheBlock != null) {
-//                return cacheBlock;
-//            }
-//        } else {
-//            // 从cacheBlockInfo获取
-//            Block cacheBlock = cacheBlockInfo.get(key);
-//            if (cacheBlock != null) {
-//                return cacheBlock;
-//            }
-//        }
-
-        // 从内存池获取
         Block b = memOrphanPool.get(key);
         if (b == null) {
             b = blockStore.getBlockByHash(hashlow, isRaw);
         }
-
-//        if (isRaw) {
-//            if (b!=null) {
-//                // 更新cache
-//                cache.put(key, b);
-//            }
-//        } else {
-//            if (b!=null) {
-//                cacheBlockInfo.put(key,b);
-//            }
-//        }
         return b;
     }
 
@@ -1175,8 +1138,6 @@ public class BlockchainImpl implements Blockchain {
                 // 从MemOrphanPool中去除
                 ByteArrayWrapper key = new ByteArrayWrapper(b.getHashLow().toArray());
                 Block removeBlockRaw = memOrphanPool.get(key);
-//                cache.remove(key);
-//                cacheBlockInfo.remove(key);
                 memOrphanPool.remove(key);
                 if (action != OrphanRemoveActions.ORPHAN_REMOVE_REUSE) {
                     // 将区块保存
@@ -1185,7 +1146,6 @@ public class BlockchainImpl implements Blockchain {
                     // 移除所有EXTRA块链接的块
                     if (removeBlockRaw != null) {
                         List<Address> all = removeBlockRaw.getLinks();
-                        // TODO:递归的移除
                         for (Address addr : all) {
                             removeOrphan(addr.getHashLow(), OrphanRemoveActions.ORPHAN_REMOVE_NORMAL);
                         }
@@ -1208,23 +1168,10 @@ public class BlockchainImpl implements Blockchain {
         if (block == null) {
             return;
         }
-        ByteArrayWrapper key = new ByteArrayWrapper(block.getHashLow().toArray());
         if (direction) {
             block.getInfo().setFlags(block.getInfo().flags |= flag);
-//            if (cache.get(key) != null) {
-//                cache.get(key).getInfo().setFlags(cache.get(key).getInfo().flags |= flag);
-//            }
-//            if (cacheBlockInfo.get(key) != null) {
-//                cacheBlockInfo.get(key).getInfo().setFlags(cacheBlockInfo.get(key).getInfo().flags |= flag);
-//            }
         } else {
             block.getInfo().setFlags(block.getInfo().flags &= ~flag);
-//            if (cache.get(key) != null) {
-//                cache.get(key).getInfo().setFlags(cache.get(key).getInfo().flags &= ~flag);
-//            }
-//            if (cacheBlockInfo.get(key) != null) {
-//                cacheBlockInfo.get(key).getInfo().setFlags(cacheBlockInfo.get(key).getInfo().flags &= ~flag);
-//            }
         }
         if (block.isSaved) {
             blockStore.saveBlockInfo(block.getInfo());
@@ -1278,7 +1225,6 @@ public class BlockchainImpl implements Blockchain {
     }
 
     public boolean canUseInput(Block block) {
-//        boolean canUse = false;
         List<SECP256K1.PublicKey> keys = block.verifiedKeys();
         List<Address> inputs = block.getInputs();
         if (inputs == null || inputs.size() == 0) {
@@ -1391,12 +1337,8 @@ public class BlockchainImpl implements Blockchain {
 
     public void removeOurBlock(Block block) {
         if (!block.isSaved) {
-//            cache.remove(new ByteArrayWrapper(block.getHashLow().toArray()));
-//            cacheBlockInfo.remove(new ByteArrayWrapper(block.getHashLow().toArray()));
             memOurBlocks.remove(new ByteArrayWrapper(block.getHash().toArray()));
         } else {
-//            cache.remove(new ByteArrayWrapper(block.getHashLow().toArray()));
-//            cacheBlockInfo.remove(new ByteArrayWrapper(block.getHashLow().toArray()));
             blockStore.removeOurBlock(block.getHashLow().toArray());
         }
     }

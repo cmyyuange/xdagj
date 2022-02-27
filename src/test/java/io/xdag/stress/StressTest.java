@@ -96,7 +96,7 @@ public class StressTest {
     }
 
 
-    @Test
+//    @Test
     public void stressTest() throws IOException, ClassNotFoundException, InterruptedException {
         int num = 200000; // 总块数
         int splitNum = 4; // 分的份数

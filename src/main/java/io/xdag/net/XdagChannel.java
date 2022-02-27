@@ -88,11 +88,13 @@ public class XdagChannel extends Channel {
             Kernel kernel,
             boolean isServer,
             InetSocketAddress inetSocketAddress) {
-
         this.kernel = kernel;
         this.inetSocketAddress = inetSocketAddress;
         this.handshakeHandler = new XdagHandshakeHandler(kernel, this);
         handshakeHandler.setServer(isServer);
+        if (isServer) {
+            pipeline.addLast("inboundLimitHandler", new ConnectionLimitHandler(kernel.getConfig().getNodeSpec().getMaxInboundConnectionsPerIp()));
+        }
         pipeline.addLast("handshakeHandler", handshakeHandler);
         this.messageQueue = new MessageQueue(this);
         this.messageCodec = new MessageCodes();
