@@ -90,7 +90,7 @@ public class GenerateBlocks {
     }
 
 
-    @Test
+//    @Test
     public void generateBlocksData() throws IOException, ClassNotFoundException {
         int num = 200000;
 

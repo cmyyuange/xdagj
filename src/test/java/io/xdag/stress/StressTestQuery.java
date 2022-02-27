@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import io.xdag.Kernel;
 import io.xdag.config.Config;
 import io.xdag.config.DevnetConfig;
+import io.xdag.core.Address;
 import io.xdag.core.Block;
 import io.xdag.core.BlockchainImpl;
 import io.xdag.core.ImportResult;
@@ -49,18 +50,6 @@ public class StressTestQuery {
 
     private static final String fileName = "block.data";
 
-    BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
-    BigInteger private_2 = new BigInteger("10a55f0c18c46873ddbf9f15eddfc06f10953c601fd144474131199e04148046", 16);
-
-    org.hyperledger.besu.crypto.SECP256K1.PrivateKey secretkey_1 = org.hyperledger.besu.crypto.SECP256K1.PrivateKey.create(private_1);
-    org.hyperledger.besu.crypto.SECP256K1.PrivateKey secretkey_2 = org.hyperledger.besu.crypto.SECP256K1.PrivateKey.create(private_2);
-
-    private static void assertChainStatus(long nblocks, long nmain, long nextra, long norphan, BlockchainImpl bci) {
-        assertEquals("blocks:", nblocks, bci.getXdagStats().nblocks);
-        assertEquals("main:", nmain, bci.getXdagStats().nmain);
-        assertEquals("nextra:", nextra, bci.getXdagStats().nextra);
-        assertEquals("orphan:", norphan, bci.getXdagStats().nnoref);
-    }
 
     @Before
     public void setUp() throws Exception {
@@ -139,7 +128,7 @@ public class StressTestQuery {
         addSize = num/splitNum;
 
         for (int i = 0; i< splitNum;i++) {
-            System.out.printf("第%d次 增加 %d 区块",i+1, addSize);
+            System.out.printf("第%d次 增加 %d 区块\n",i+1, addSize);
             stopWatch.reset();
             stopWatch.start();
             for (int j = i*addSize; j < addSize*(i+1); j++) {
@@ -175,6 +164,11 @@ public class StressTestQuery {
             checkOrphan(); // 处理孤块
             return super.tryToConnect(block);
         }
+
+//        @Override
+//        public List<Address> getBlockFromOrphanPool(int num, long sendtime) {
+//            return null;
+//        }
 
         @Override
         public void startCheckMain(long period) {

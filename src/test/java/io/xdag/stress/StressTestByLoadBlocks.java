@@ -32,7 +32,7 @@ public class StressTestByLoadBlocks {
     private static final String fileName = "block.data";
 
 
-    @Test
+//    @Test
     public void stressTest() throws IOException, ClassNotFoundException {
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.println(" 开始加载区块");

@@ -362,31 +362,32 @@ public class BlockchainImpl implements Blockchain {
 
     private synchronized ImportResult tryToConnectBlock(Block block) {
         // TODO: if current height is snapshot height, we need change logic to process new block
-
         try {
             ImportResult result = ImportResult.IMPORTED_NOT_BEST;
 
-            // 区块头 网络类型校验
+            // 1. 只跟区块本身
+            // 1.1 区块头 网络类型校验
             if (!checkBlockHeader(block)) {
                 result = ImportResult.ERROR;
                 result.setErrorInfo("Block type error, is not a testnet block");
                 return result;
             }
-            // 区块时间校验
+            // 1.2 区块时间校验
             if (!checkBlockTime(block)) {
                 result = ImportResult.INVALID_BLOCK;
                 result.setErrorInfo("Block's time is illegal");
                 return result;
             }
-            // 区块是否存在
+            // 1.3 区块是否存在
             if (isExist(block.getHashLow())) {
                 return ImportResult.EXIST;
             }
-            // 区块是否为extrablock
+            // 1.4 判断区块是否为extrablock
             if (isExtraBlock(block)) {
                 updateBlockFlag(block, BI_EXTRA, true);
             }
 
+            // 2. 区块引用检查，涉及引用块
             // 检查区块的引用区块是否都存在,对所有input和output放入block（可能在pending或db中取出
             List<Address> all = block.getLinks().stream().distinct().collect(Collectors.toList());
             for (Address ref : all) {
@@ -407,11 +408,10 @@ public class BlockchainImpl implements Blockchain {
                             return result;
                         }
                     }
-
                 }
             }
 
-            // remove links
+            // 3. 移除 remove links
             for (Address ref : all) {
                 removeOrphan(ref.getHashLow(),
                         (block.getInfo().flags & BI_EXTRA) != 0
