@@ -91,7 +91,7 @@ public class StressTestQuery {
     }
 
 
-//    @Test
+    @Test
     public void stressTest() throws IOException, ClassNotFoundException, InterruptedException {
         int num; // 总块数
         int addSize; // 每次增加的块数量
