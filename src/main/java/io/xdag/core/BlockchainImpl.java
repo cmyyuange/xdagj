@@ -330,7 +330,10 @@ public class BlockchainImpl implements Blockchain {
      */
     @Override
     public synchronized ImportResult tryToConnect(Block block) {
+        return tryToConnectBlock(block);
+    }
 
+    private synchronized ImportResult tryToConnectBlock(Block block) {
         // TODO: if current height is snapshot height, we need change logic to process new block
 
         try {
@@ -1167,31 +1170,31 @@ public class BlockchainImpl implements Blockchain {
                 || (b.getInfo().flags & BI_EXTRA) != 0)) {
             // 如果removeBlock是BI_EXTRA
             if ((b.getInfo().flags & BI_EXTRA) != 0) {
-////                log.debug("移除Extra");
-//                // 那removeBlockInfo就是完整的
-//                // 从MemOrphanPool中去除
-//                ByteArrayWrapper key = new ByteArrayWrapper(b.getHashLow().toArray());
-//                Block removeBlockRaw = memOrphanPool.get(key);
-////                cache.remove(key);
-////                cacheBlockInfo.remove(key);
-//                memOrphanPool.remove(key);
-//                if (action != OrphanRemoveActions.ORPHAN_REMOVE_REUSE) {
-//                    // 将区块保存
-//                    saveBlock(removeBlockRaw);
-//                    memOrphanPool.remove(key);
-//                    // 移除所有EXTRA块链接的块
-//                    if (removeBlockRaw != null) {
-//                        List<Address> all = removeBlockRaw.getLinks();
-//                        // TODO:递归的移除
-//                        for (Address addr : all) {
-//                            removeOrphan(addr.getHashLow(), OrphanRemoveActions.ORPHAN_REMOVE_NORMAL);
-//                        }
-//                    }
-//                }
-//                // 更新removeBlockRaw的flag
-//                // nextra减1
-//                updateBlockFlag(removeBlockRaw, BI_EXTRA, false);
-//                xdagStats.nextra--;
+//                log.debug("移除Extra");
+                // 那removeBlockInfo就是完整的
+                // 从MemOrphanPool中去除
+                ByteArrayWrapper key = new ByteArrayWrapper(b.getHashLow().toArray());
+                Block removeBlockRaw = memOrphanPool.get(key);
+//                cache.remove(key);
+//                cacheBlockInfo.remove(key);
+                memOrphanPool.remove(key);
+                if (action != OrphanRemoveActions.ORPHAN_REMOVE_REUSE) {
+                    // 将区块保存
+                    saveBlock(removeBlockRaw);
+                    memOrphanPool.remove(key);
+                    // 移除所有EXTRA块链接的块
+                    if (removeBlockRaw != null) {
+                        List<Address> all = removeBlockRaw.getLinks();
+                        // TODO:递归的移除
+                        for (Address addr : all) {
+                            removeOrphan(addr.getHashLow(), OrphanRemoveActions.ORPHAN_REMOVE_NORMAL);
+                        }
+                    }
+                }
+                // 更新removeBlockRaw的flag
+                // nextra减1
+                updateBlockFlag(removeBlockRaw, BI_EXTRA, false);
+                xdagStats.nextra--;
             } else {
                 orphanPool.deleteByHash(b.getHashLow().toArray());
                 xdagStats.nnoref--;
@@ -1452,7 +1455,7 @@ public class BlockchainImpl implements Blockchain {
         while (nblk-- > 0) {
             Block linkBlock = createNewBlock(null, null, false, kernel.getConfig().getPoolSpec().getPoolTag());
             linkBlock.signOut(kernel.getWallet().getDefKey());
-            ImportResult result = this.tryToConnect(linkBlock);
+            ImportResult result = this.tryToConnectBlock(linkBlock);
             if (result == IMPORTED_NOT_BEST || result == IMPORTED_BEST) {
                 onNewBlock(linkBlock);
             }
