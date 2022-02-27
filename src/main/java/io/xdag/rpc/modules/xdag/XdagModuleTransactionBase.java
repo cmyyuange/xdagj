@@ -29,6 +29,7 @@ import io.xdag.core.Blockchain;
 import io.xdag.core.ImportResult;
 import io.xdag.core.XdagBlock;
 import io.xdag.rpc.Web3;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,14 +62,19 @@ public class XdagModuleTransactionBase implements XdagModuleTransaction {
 
         // 1. build transaction
         // 2. try to add blockchain
-        System.out.println(rawData);
-        Block block = new Block(new XdagBlock(Hex.decode(rawData)));
-        ImportResult result = blockchain.tryToConnect(block);
-        System.out.println(result);
-        if (!result.isNormal()) {
-            return "0x";
-        } else {
-            return result.toString();
+//        System.out.println(rawData);
+        try {
+            Block block = new Block(new XdagBlock(Hex.decode(rawData)));
+            ImportResult result = blockchain.tryToConnect(block);
+//            System.out.println(result);
+            if (!result.isNormal()) {
+                return "0x";
+            } else {
+                return result.toString();
+            }
+        } catch (DecoderException err) {
+            System.out.println("error");
+            return null;
         }
     }
 }

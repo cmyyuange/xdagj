@@ -171,7 +171,7 @@ public class ExtraBlockTest {
         ImportResult result = blockchain.tryToConnect(addressBlock);
         // import address block, result must be IMPORTED_BEST
         assertSame(result, IMPORTED_BEST);
-        blockchain.checkExtra();
+        blockchain.checkOrphan();
         List<Address> pending = Lists.newArrayList();
         List<Block> extraBlockList = Lists.newLinkedList();
         Bytes32 ref = addressBlock.getHashLow();
@@ -186,7 +186,7 @@ public class ExtraBlockTest {
             Block extraBlock = generateExtraBlock(config, poolKey, xdagTime, pending);
             result = blockchain.tryToConnect(extraBlock);
             assertSame(result, IMPORTED_BEST);
-            blockchain.checkExtra();
+            blockchain.checkOrphan();
             ref = extraBlock.getHashLow();
             extraBlockList.add(extraBlock);
         }
@@ -200,7 +200,7 @@ public class ExtraBlockTest {
             long xdagTime = XdagTime.getEndOfEpoch(time);
             Block extraBlock = generateExtraBlockGivenRandom(config, poolKey, xdagTime, pending, "01" + i);
             blockchain.tryToConnect(extraBlock);
-            blockchain.checkExtra();
+            blockchain.checkOrphan();
             extraBlockList.add(extraBlock);
         }
 
@@ -241,7 +241,7 @@ public class ExtraBlockTest {
         }
 
         @Override
-        public void checkExtra() {
+        public void checkOrphan() {
             long nblk = this.getXdagStats().nextra / 11;
             while (nblk-- > 0) {
                 Block linkBlock = createNewBlock(null, null, false, kernel.getConfig().getPoolSpec().getPoolTag());

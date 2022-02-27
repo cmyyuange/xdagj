@@ -26,7 +26,9 @@ package io.xdag.rpc.modules.web3;
 
 import io.xdag.rpc.Web3;
 import io.xdag.rpc.dto.BlockResultDTO;
+import io.xdag.rpc.dto.BlockStatusDTO;
 import io.xdag.rpc.dto.StatusDTO;
+import io.xdag.rpc.dto.TransactionStatusDTO;
 import io.xdag.rpc.modules.xdag.XdagModule;
 
 
@@ -65,8 +67,9 @@ public interface Web3XdagModule {
 
     BlockResultDTO xdag_getBlockByNumber(String bnOrId, Boolean full) throws Exception;
 
-    default String xdag_sendRawTransaction(String rawData) {
-        return getXdagModule().sendRawTransaction(rawData);
+    default TransactionStatusDTO xdag_sendRawTransaction(String rawData) {
+        String status =  getXdagModule().sendRawTransaction(rawData);
+        return new TransactionStatusDTO(status);
     }
 
     default String xdag_sendTransaction(Web3.CallArguments args) {
@@ -76,4 +79,7 @@ public interface Web3XdagModule {
     BlockResultDTO xdag_getBlockByHash(String blockHash, Boolean full) throws Exception;
 
     StatusDTO xdag_getStatus() throws Exception;
+
+
+    BlockStatusDTO xdag_getBlockStatus(String hash) throws Exception;
 }
