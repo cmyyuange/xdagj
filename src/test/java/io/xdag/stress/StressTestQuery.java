@@ -162,7 +162,7 @@ public class StressTestQuery {
 
         @Override
         public synchronized ImportResult tryToConnect(Block block) {
-            checkOrphan(); // 处理孤块
+//            checkOrphan(); // 处理孤块
             return super.tryToConnect(block);
         }
 
