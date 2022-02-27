@@ -30,6 +30,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.xdag.Kernel;
 import io.xdag.core.BlockWrapper;
+import io.xdag.mine.handler.ConnectionLimitHandler;
 import io.xdag.net.handler.MessageCodes;
 import io.xdag.net.handler.Xdag;
 import io.xdag.net.handler.XdagAdapter;

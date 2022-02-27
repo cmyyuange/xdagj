@@ -2,32 +2,88 @@ package io.xdag.stress;
 
 import cn.hutool.json.JSONObject;
 import com.google.gson.Gson;
+import io.xdag.Kernel;
 import io.xdag.config.Config;
 import io.xdag.config.DevnetConfig;
 import io.xdag.core.Block;
+import io.xdag.crypto.SampleKeys;
+import io.xdag.crypto.jni.Native;
+import io.xdag.db.DatabaseFactory;
+import io.xdag.db.DatabaseName;
+import io.xdag.db.rocksdb.RocksdbFactory;
+import io.xdag.db.store.BlockStore;
+import io.xdag.db.store.OrphanPool;
 import io.xdag.stress.common.BlockResult;
 import io.xdag.stress.common.JsonCall;
 import io.xdag.stress.common.ProgressBar;
+import io.xdag.wallet.Wallet;
 import java.math.BigInteger;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.tuweni.bytes.Bytes32;
-import org.apache.tuweni.crypto.SECP256K1;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.hyperledger.besu.crypto.SECP256K1;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class StressTest {
     static { Security.addProvider(new BouncyCastleProvider());  }
     private static final String url = "http://127.0.0.1:4444";
-    private static BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
-    private static SECP256K1.SecretKey secretkey_1 = SECP256K1.SecretKey.fromInteger(private_1);
-    private static final Config config = new DevnetConfig();
 
+    @Rule
+    public TemporaryFolder root = new TemporaryFolder();
+    Config config = new DevnetConfig();
+    Wallet wallet;
+    String pwd;
+    Kernel kernel;
+    DatabaseFactory dbFactory;
+
+    BigInteger private_1 = new BigInteger("c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4", 16);
+    BigInteger private_2 = new BigInteger("10a55f0c18c46873ddbf9f15eddfc06f10953c601fd144474131199e04148046", 16);
+
+    SECP256K1.PrivateKey secretkey_1 = SECP256K1.PrivateKey.create(private_1);
+
+    @Before
+    public void setUp() throws Exception {
+        config.getNodeSpec().setStoreDir(root.newFolder().getAbsolutePath());
+        config.getNodeSpec().setStoreBackupDir(root.newFolder().getAbsolutePath());
+
+        Native.init(config);
+        if (Native.dnet_crypt_init() < 0) {
+            throw new Exception("dnet crypt init failed");
+        }
+        pwd = "password";
+        wallet = new Wallet(config);
+        wallet.unlock(pwd);
+        org.hyperledger.besu.crypto.SECP256K1.KeyPair key = org.hyperledger.besu.crypto.SECP256K1.KeyPair.create(
+                SampleKeys.SRIVATE_KEY);
+        wallet.setAccounts(Collections.singletonList(key));
+        wallet.flush();
+
+        kernel = new Kernel(config);
+        dbFactory = new RocksdbFactory(config);
+
+        BlockStore blockStore = new BlockStore(
+                dbFactory.getDB(DatabaseName.INDEX),
+                dbFactory.getDB(DatabaseName.TIME),
+                dbFactory.getDB(DatabaseName.BLOCK));
+
+        blockStore.reset();
+        OrphanPool orphanPool = new OrphanPool(dbFactory.getDB(DatabaseName.ORPHANIND));
+        orphanPool.reset();
+
+        kernel.setBlockStore(blockStore);
+        kernel.setOrphanPool(orphanPool);
+        kernel.setWallet(wallet);
+    }
 
 //    @Test
     public void testStress() {
@@ -51,7 +107,7 @@ public class StressTest {
         System.out.print(new Date(System.currentTimeMillis()));
         System.out.printf(" 创建%d个区块...\n",num);
         for (int i = 0; i < num;i++) {
-            SECP256K1.KeyPair addrKey = SECP256K1.KeyPair.fromSecretKey(secretkey_1);
+            SECP256K1.KeyPair addrKey = SECP256K1.KeyPair.create(secretkey_1);
             long xdagTime = System.currentTimeMillis()+i*10;
             Block b = new Block(config, xdagTime, null, null, false, null, null, -1);
             b.signOut(addrKey);
