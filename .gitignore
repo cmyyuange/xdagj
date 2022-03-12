@@ -19,6 +19,7 @@ mainnet
 target
 logs
 dist
+./pool
 #for macos
 .DS_Store
 src/c/

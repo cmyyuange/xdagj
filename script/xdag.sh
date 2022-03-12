@@ -145,4 +145,4 @@ copyFile $XDAG_CONFIG_NAME "${rootPath}/src/main/resources"
 
 # launch
 echo -e "\033[44;37m ============  Mining Pool Is Starting......  ============  \033[0m"
-java ${JAVA_OPTS} -cp .:${XDAG_JAR_NAME} io.xdag.Bootstrap "$@"
+java ${JAVA_OPTS} -cp .:${XDAG_JAR_NAME} io.xdag.Bootstrap "${XDAG_OPTS}"
