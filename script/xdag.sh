@@ -3,7 +3,7 @@
 # =========================  function start  =========================
 
 function buildJarPackage() {
-    rootPath = $1
+    rootPath=$1
     randomXBuildPath="${rootPath}/src/c"
     randomXBuildFloderName="build"
 
@@ -142,6 +142,7 @@ cd $XDAG_POOL_PATH
 # copy config file & jar
 copyFile $XDAG_JAR_NAME ${targetPath}
 copyFile $XDAG_CONFIG_NAME "${rootPath}/src/main/resources"
+copyFile "netdb-*.txt" "${rootPath}/src/main/resources"
 
 # launch
 echo -e "\033[44;37m ============  Mining Pool Is Starting......  ============  \033[0m"
