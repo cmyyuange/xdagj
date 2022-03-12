@@ -13,7 +13,7 @@ function buildJarPackage() {
     sleep 4s
 
     # 判断文件是不是存在
-    if [ ! -d "${randomXBuildFloderName}"]; then
+    if [ ! -d "${randomXBuildFloderName}" ]; then
         mkdir "${randomXBuildFloderName}"
     fi
     cd ${randomXBuildFloderName}
