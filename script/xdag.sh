@@ -63,6 +63,7 @@ function getXdagJarName() {
     XDAG_JAR_NAME=$(ls ${XDAG_JAR_REGEX})
 }
 
+# Pass in the project root directory to build
 function buildXdagProject() {
     rootPath=$1
     randomXBuildPath="${rootPath}/src/c"
@@ -127,6 +128,7 @@ function copyFile() {
 
 # =========================  function end  =========================
 
+# ========================= main ===========================
 # parses command line arguments
 while getopts "$USAGE" opt; do
     case $opt in
@@ -141,6 +143,9 @@ while getopts "$USAGE" opt; do
         XDAG_OPTS+="-t"
         XDAG_CONFIG_NAME=$XDAG_TESTNET_CONFIG_NAME
         ;;
+    D)
+        XDAG_MAVEN_OPTS+="-Dmaven.test.skip=true"
+        ;;
     h)
         echo "usage: sh xdag.sh [options]"
         echo "options:"
@@ -149,9 +154,6 @@ while getopts "$USAGE" opt; do
         echo "\\t-D: skip tests during maven build"
         echo "\\t-h: print help"
         exit 0
-        ;;
-    D)
-        XDAG_MAVEN_OPTS+="-Dmaven.test.skip=true"
         ;;
     ?)
         echo -e "${XDAG_ERROR}unknown parameters $opt"
@@ -198,3 +200,4 @@ copyFile "netdb-*.txt" "${rootPath}/src/main/resources"
 # launch
 echo -e "\033[42;37m============  Mining Pool Is Starting......  ============\033[0m"
 java ${JAVA_OPTS} -cp .:${XDAG_JAR_NAME} io.xdag.Bootstrap "${XDAG_OPTS}"
+# ========================= main ===========================
