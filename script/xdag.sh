@@ -41,7 +41,7 @@ function getXdagJarName() {
     # Get the name of the jar package available for execution in the target directory
     targetPath="$rootPath/target/"
 
-    # 如果文件存在，并且可以找到 jar 包
+    # If the  target folder exists and there is jar package
     if [ -d "${targetPath}" ]; then
         cd $targetPath
         if [ ! -z "$(ls ${XDAG_JAR_REGEX})" ]; then
@@ -58,6 +58,7 @@ function getXdagJarName() {
     buildXdagProject ${rootPath}
     echo -e "\033[47;30m============  Build XDAGJ Project Finish ============\033[0m"
 
+    # get package name
     cd $targetPath
     XDAG_JAR_NAME=$(ls ${XDAG_JAR_REGEX})
 }
