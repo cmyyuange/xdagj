@@ -163,14 +163,17 @@ while getopts "$USAGE" opt; do
 done
 
 # If you are using the release folder, there should already be a corresponding jar package and configuration file in the current directory
-if (test ! -z "$(ls ${XDAG_JAR_REGEX} >/dev/null 2>&1)") && (test ! -z "$(ls ${XDAG_CONFIG_NAME} >/dev/null 2>&1)"); then
+if (test ! -z "$(ls ${XDAG_JAR_REGEX} 2> /dev/null)") && (test ! -z "$(ls ${XDAG_CONFIG_NAME} 2> /dev/null)"); then
     XDAG_JAR_NAME="$(ls ${XDAG_JAR_REGEX})"
+    echo -e "${XDAG_INFO}Run Project From Release Version"
     echo -e "${XDAG_INFO}The file [${XDAG_JAR_NAME}] are ready"
     echo -e "${XDAG_INFO}The file [${XDAG_CONFIG_NAME}] are ready"
     echo -e "\033[42;37m============  Mining Pool Is Starting......  ============\033[0m"
     java ${JAVA_OPTS} -cp .:$(ls ${XDAG_JAR_NAME}) io.xdag.Bootstrap "${XDAG_OPTS}"
     exit 0
 fi
+
+echo -e "${XDAG_INFO}Run Project From Code"
 
 # Get the name of the jar package available for execution in the target directory
 getXdagJarName
