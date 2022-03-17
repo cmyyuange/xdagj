@@ -90,15 +90,16 @@ function buildXdagProject() {
     fi
     echo -e "\033[47;30m============  Build RandomX Lib Finish & Success ============\033[0m"
     echo ""
-    echo -e "\033[47;30m============  Build JAR Start  ============\033[0m"
+    echo -e "\033[47;30m============  mvn clean package start  ============\033[0m"
 
     cd ${rootPath}
+    echo "${XDAG_INFO} mvn options [${XDAG_MAVEN_OPTS}]"
     mvn clean package ${XDAG_MAVEN_OPTS}
     if [ $? -ne 0 ]; then
-        echo -e "${XDAG_ERROR}Build JAR failed"
+        echo -e "${XDAG_ERROR}action [mvn clean package ${XDAG_MAVEN_OPTS}]failed"
         exit 1
     fi
-    echo -e "\033[47;30m ============  Build JAR Finish & Success  ============ \033[0m"
+    echo -e "\033[47;30m ============  mvn clean package finish & success  ============ \033[0m"
 }
 
 # $1 filename:  the file need to be copy
@@ -169,6 +170,7 @@ if (test ! -z "$(ls ${XDAG_JAR_REGEX} 2> /dev/null)") && (test ! -z "$(ls ${XDAG
     echo -e "${XDAG_INFO}The file [${XDAG_JAR_NAME}] are ready"
     echo -e "${XDAG_INFO}The file [${XDAG_CONFIG_NAME}] are ready"
     echo -e "\033[42;37m============  Mining Pool Is Starting......  ============\033[0m"
+    echo -e "${XDAG_INFO}launch options [${XDAG_OPTS}]"
     java ${JAVA_OPTS} -cp .:$(ls ${XDAG_JAR_NAME}) io.xdag.Bootstrap "${XDAG_OPTS}"
     exit 0
 fi
@@ -202,5 +204,6 @@ copyFile "netdb-*.txt" "${rootPath}/src/main/resources"
 
 # launch
 echo -e "\033[42;37m============  Mining Pool Is Starting......  ============\033[0m"
+echo -e "${XDAG_INFO}launch options [${XDAG_OPTS}]"
 java ${JAVA_OPTS} -cp .:${XDAG_JAR_NAME} io.xdag.Bootstrap "${XDAG_OPTS}"
 # ========================= main ===========================
