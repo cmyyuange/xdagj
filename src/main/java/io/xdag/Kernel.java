@@ -77,6 +77,7 @@ import io.xdag.rpc.netty.Web3WebSocketServer;
 import io.xdag.rpc.netty.XdagJsonRpcHandler;
 import io.xdag.rpc.serialize.JacksonBasedRpcSerializer;
 import io.xdag.rpc.serialize.JsonRpcSerializer;
+import io.xdag.txs.BlockListener;
 import io.xdag.utils.XdagTime;
 import io.xdag.wallet.Wallet;
 import java.net.InetAddress;
@@ -146,6 +147,9 @@ public class Kernel {
     protected JsonRpcWeb3FilterHandler jsonRpcWeb3FilterHandler;
     protected JacksonBasedRpcSerializer jacksonBasedRpcSerializer;
 
+    // listener
+    protected BlockListener blockListener;
+
     public Kernel(Config config, Wallet wallet) {
         this.config = config;
         this.wallet = wallet;
@@ -195,7 +199,8 @@ public class Kernel {
         blockStore = new BlockStore(
                 dbFactory.getDB(DatabaseName.INDEX),
                 dbFactory.getDB(DatabaseName.BLOCK),
-                dbFactory.getDB(DatabaseName.TIME));
+                dbFactory.getDB(DatabaseName.TIME),
+                dbFactory.getDB(DatabaseName.TXHISTORY));
         log.info("Block Store init.");
         blockStore.init();
 
@@ -222,6 +227,15 @@ public class Kernel {
         // initialize blockchain database
         // ====================================
         blockchain = new BlockchainImpl(this);
+
+        // ====================================
+        // tx history
+        // ====================================
+//        TxHistoryUtils txHistoryUtils = new TxHistoryUtils();
+        blockListener = new BlockListener();
+        blockchain.registerListener(blockListener);
+        blockListener.start();
+
         XdagStats xdagStats = blockchain.getXdagStats();
         // 如果是第一次启动，则新建第一个地址块
         if (xdagStats.getOurLastBlockHash() == null) {
@@ -440,7 +454,6 @@ public class Kernel {
         if (web3WebSocketServer != null) {
             web3WebSocketServer.stop();
         }
-
         // 1. 工作层关闭
         // stop consensus
         sync.stop();
@@ -483,6 +496,8 @@ public class Kernel {
         for (DatabaseName name : DatabaseName.values()) {
             dbFactory.getDB(name).close();
         }
+
+        blockListener.stop();
 
         // release
         randomXUtils.randomXPoolReleaseMem();
