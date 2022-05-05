@@ -98,6 +98,7 @@ public class ExtraBlockTest {
         BlockStore blockStore = new BlockStore(
                 dbFactory.getDB(DatabaseName.INDEX),
                 dbFactory.getDB(DatabaseName.TIME),
+                dbFactory.getDB(DatabaseName.TXHISTORY),
                 dbFactory.getDB(DatabaseName.BLOCK));
 
         blockStore.reset();
