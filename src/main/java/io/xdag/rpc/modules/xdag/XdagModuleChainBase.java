@@ -51,10 +51,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tuweni.bytes.Bytes32;
 
+@Slf4j
 public class XdagModuleChainBase implements XdagModuleChain {
 
     private final Blockchain blockchain;
@@ -77,15 +79,20 @@ public class XdagModuleChainBase implements XdagModuleChain {
 
     @Override
     public BlockResultDTO getBlockByNumber(String bnOrId) {
-        Block blockFalse = blockchain.getBlockByHeight(Long.parseLong(bnOrId));
-        if (null == blockFalse) {
+        try {
+            Block blockFalse = blockchain.getBlockByHeight(Long.parseLong(bnOrId));
+            if (null == blockFalse) {
+                return null;
+            }
+            Block blockTrue = blockchain.getBlockByHash(blockFalse.getHash(), true);
+            if (blockTrue == null) {
+                return transferBlockInfoToBlockResultDTO(blockFalse);
+            }
+            return transferBlockToBlockResultDTO(blockTrue);
+        } catch (Exception e) {
+            log.error("getBlockByNumber fail, req:{}",bnOrId,e);
             return null;
         }
-        Block blockTrue = blockchain.getBlockByHash(blockFalse.getHash(), true);
-        if (blockTrue == null) {
-            return transferBlockInfoToBlockResultDTO(blockFalse);
-        }
-        return transferBlockToBlockResultDTO(blockTrue);
     }
 
     @Override
@@ -94,6 +101,7 @@ public class XdagModuleChainBase implements XdagModuleChain {
             long reward = blockchain.getReward(Long.parseLong(bnOrId));
             return String.format("%.9f", amount2xdag(reward));
         } catch (Exception e) {
+            log.error("getRewardByNumber fail, req:{}",bnOrId,e);
             return e.getMessage();
         }
 
@@ -122,6 +130,7 @@ public class XdagModuleChainBase implements XdagModuleChain {
             }
             return resultDTOS;
         } catch (Exception e) {
+            log.error("getRewardByNumber fail, req:{}",numberReq,e);
             return e.getMessage();
         }
     }
@@ -135,8 +144,10 @@ public class XdagModuleChainBase implements XdagModuleChain {
         Bytes32 blockHash;
         if (StringUtils.length(hash) == 32) {
             blockHash = address2Hash(hash);
-        } else {
+        } else if (StringUtils.length(hash) == 64){
             blockHash = BasicUtils.getHash(hash);
+        } else {
+            return null;
         }
         Block block = blockchain.getBlockByHash(blockHash, true);
         if (block == null) {

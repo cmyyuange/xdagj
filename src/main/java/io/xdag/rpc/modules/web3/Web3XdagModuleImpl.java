@@ -134,14 +134,21 @@ public class Web3XdagModuleImpl implements Web3XdagModule {
         Bytes32 hash;
         if (StringUtils.length(address) == 32) {
             hash = address2Hash(address);
-        } else {
+        } else if (StringUtils.length(address) == 64){
             hash = BasicUtils.getHash(address);
+        } else {
+            return "";
         }
 //        byte[] key = new byte[32];
         MutableBytes32 key = MutableBytes32.create();
 //        System.arraycopy(Objects.requireNonNull(hash), 8, key, 8, 24);
         key.set(8, hash.slice(8, 24));
         Block block = kernel.getBlockStore().getBlockInfoByHash(Bytes32.wrap(key));
+
+        if (block == null) {
+            return "";
+        }
+
         String balance = String.format("%.9f", amount2xdag(block.getInfo().getAmount()));
 
 //        double balance = amount2xdag(block.getInfo().getAmount());
