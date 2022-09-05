@@ -348,6 +348,7 @@ public class XdagPow implements PoW, Listener, Runnable {
     protected void onNewPreTop(Bytes preTop) {
         log.debug("Receive New PreTop {}",preTop.toHexString());
         if (!Bytes32.wrap(preTop).equals(globalPretop)) {
+            globalPretop = Bytes32.wrap(blockchain.getXdagTopStatus().getPreTop());
             newBlock();
         }
     }
