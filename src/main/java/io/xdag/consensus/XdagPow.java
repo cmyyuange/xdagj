@@ -272,10 +272,10 @@ public class XdagPow implements PoW, Listener, Runnable {
         if (!this.isRunning) {
             return;
         }
-        if (!equalBytes(pretop.toArray(), globalPretop.toArray())) {
-            globalPretop = Bytes32.wrap(blockchain.getXdagTopStatus().getPreTop());
+//        if (!equalBytes(pretop.toArray(), globalPretop.toArray())) {
+//            globalPretop = Bytes32.wrap(blockchain.getXdagTopStatus().getPreTop());
             events.add(new Event(Event.Type.NEW_PRETOP, pretop));
-        }
+//        }
     }
 
     protected void onNewShare(XdagField shareInfo, MinerChannel channel) {
@@ -340,12 +340,16 @@ public class XdagPow implements PoW, Listener, Runnable {
 
             broadcaster.broadcast(bw);
         }
+        log.debug("Timeout, generateNewblock, currentPretop:{}", globalPretop.toHexString());
+        globalPretop = Bytes32.wrap(blockchain.getXdagTopStatus().getPreTop());
         newBlock();
     }
 
-    protected void onNewPreTop() {
-        log.debug("Receive New PreTop");
-        newBlock();
+    protected void onNewPreTop(Bytes preTop) {
+        log.debug("Receive New PreTop {}",preTop.toHexString());
+        if (!Bytes32.wrap(preTop).equals(globalPretop)) {
+            newBlock();
+        }
     }
 
     /**
@@ -425,7 +429,7 @@ public class XdagPow implements PoW, Listener, Runnable {
                         break;
                     case NEW_PRETOP:
                         if (kernel.getXdagState() == XdagState.SDST || kernel.getXdagState() == XdagState.STST || kernel.getXdagState() == XdagState.SYNC) {
-                            onNewPreTop();
+                            onNewPreTop((Bytes)ev.getData());
                         }
                         break;
                     default:

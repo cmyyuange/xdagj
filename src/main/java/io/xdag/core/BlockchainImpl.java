@@ -392,20 +392,13 @@ public class BlockchainImpl implements Blockchain {
             BigInteger cuDiff = calculateCurrentBlockDiff(block);
             BigInteger diff = calculateBlockDiff(block,cuDiff);
 
-            byte[] beforePretop = xdagTopStatus.getPreTop();
-
             // 更新preTop
             setPreTop(block, diff);
             setPreTop(getBlockByHash(xdagTopStatus.getTop() == null ? null : Bytes32.wrap(xdagTopStatus.getTop()),
                     false), xdagTopStatus.getTopDiff());
 
-            byte[] afterPretop = xdagTopStatus.getPreTop();
-
-            // if pretop change, need to re-generate block
-            if ( beforePretop==null || !Bytes32.wrap(beforePretop).equals(Bytes32.wrap(afterPretop))) {
-                // 通知XdagPoW 新pretop产生
-                onNewPretop();
-            }
+            // 通知XdagPoW 新pretop产生
+            onNewPretop();
 
             // TODO:extra 处理
             processExtraBlock();
