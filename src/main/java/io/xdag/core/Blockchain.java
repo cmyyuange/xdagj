@@ -77,4 +77,6 @@ public interface Blockchain {
     List<TxHistory> getBlockTxHistoryByAddress(Bytes32 addressHashlow);
 
     XdagExtStats getXdagExtStats();
+
+    Bytes32 hashBlock(Block block);
 }

@@ -1504,4 +1504,17 @@ public class BlockchainImpl implements Blockchain {
     enum OrphanRemoveActions {
         ORPHAN_REMOVE_NORMAL, ORPHAN_REMOVE_REUSE, ORPHAN_REMOVE_EXTRA
     }
+
+    @Override
+    public  Bytes32 hashBlock(Block block) {
+        Bytes32 rxHash = Hash.sha256(block.getXdagBlock().getData().slice(0, 480));//task0
+
+        Bytes share = block.getXdagBlock().getData().slice(480,32); //share
+        MutableBytes taskData = MutableBytes.create(64);
+        taskData.set(0, rxHash);
+        taskData.set(32, share);
+
+        Bytes32 hash = Bytes32.wrap(kernel.getRandomx().randomXPoolCalcHash(taskData, taskData.size(), XdagTime.getEpoch(block.getTimestamp())).reverse());
+        return hash;
+    }
 }

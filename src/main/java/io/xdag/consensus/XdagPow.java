@@ -322,6 +322,11 @@ public class XdagPow implements PoW, Listener, Runnable {
             Block newBlock = new Block(new XdagBlock(b.toBytes()));
             log.debug("Broadcast locally generated blockchain, waiting to be verified. block hash = [{}]",
                     newBlock.getHash().toHexString());
+
+            log.debug("block hash:{}", blockchain.hashBlock(newBlock).toHexString());
+
+            log.debug("block data:{}",newBlock.getXdagBlock().getData().toHexString());
+
             // 发送区块 如果有的话 然后开始生成新区块
             kernel.getBlockchain().tryToConnect(newBlock);
             awardManager.addAwardBlock(minShare.get(), newBlock.getHash(), newBlock.getTimestamp());
