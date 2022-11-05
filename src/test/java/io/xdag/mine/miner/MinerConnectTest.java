@@ -60,7 +60,6 @@ import io.xdag.core.XdagBlock;
 import io.xdag.crypto.Keys;
 import io.xdag.crypto.SampleKeys;
 import io.xdag.crypto.Sign;
-import io.xdag.crypto.jni.Native;
 import io.xdag.db.DatabaseFactory;
 import io.xdag.db.DatabaseName;
 import io.xdag.db.rocksdb.RocksdbFactory;
@@ -89,10 +88,6 @@ public class MinerConnectTest {
         config.getNodeSpec().setStoreDir(root.newFolder().getAbsolutePath());
         config.getNodeSpec().setStoreBackupDir(root.newFolder().getAbsolutePath());
 
-        Native.init(config);
-        if (Native.dnet_crypt_init() < 0) {
-            throw new Exception("dnet crypt init failed");
-        }
         pwd = "password";
         wallet = new Wallet(config);
         wallet.unlock(pwd);
@@ -130,11 +125,10 @@ public class MinerConnectTest {
     @Test
     public void testMinerConnect()
             throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        Native.crypt_start();
         KeyPair key = Keys.createEcKeyPair();
         Block address = generateAddressBlock(config, key, new Date().getTime());
         MutableBytes encoded = address.getXdagBlock().getData();
-        byte[] data = Native.dfslib_encrypt_array(encoded.toArray(), 16, 0);
+        byte[] data = encoded.toArray();
 
         ByteBuf buf = Unpooled.buffer();
         buf.writeBytes(data);
@@ -156,7 +150,7 @@ public class MinerConnectTest {
         String fake = "0000000000000000510500000000000011100b07790100000000000000000000913c141ee4175a018a3412ba52f827d2fd67da7c0c581641e9f48a81e9dbd8f2486fac9f54560465e53a20f21940a335414f3949fc807f187fb57f51a48611220000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
         address = new Block(new XdagBlock(Hex.decode(fake)));
         encoded = address.getXdagBlock().getData();
-        data = Native.dfslib_encrypt_array(encoded.toArray(), 16, 0);
+        data = encoded.toArray();
 
         buf.clear();
         buf.writeBytes(data);
@@ -202,16 +196,12 @@ public class MinerConnectTest {
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
             if (in.readableBytes() >= XdagBlock.XDAG_BLOCK_SIZE) {
-                Native.crypt_start();
                 ByteBuf byteBuf = Unpooled.buffer();
 
-                byte[] address = new byte[512];
-                in.readBytes(address);
-
-                long sectorNo = 0;
+                byte[] uncryptData = new byte[512];
+                in.readBytes(uncryptData);
 
                 /* 解密数据 */
-                byte[] uncryptData = Native.dfslib_uncrypt_array(address, 16, sectorNo);
                 if (isDataIllegal(uncryptData.clone())) {
                     ctx.channel().closeFuture();
                 } else {

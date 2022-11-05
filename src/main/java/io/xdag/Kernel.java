@@ -40,7 +40,6 @@ import io.xdag.core.Blockchain;
 import io.xdag.core.BlockchainImpl;
 import io.xdag.core.XdagState;
 import io.xdag.core.XdagStats;
-import io.xdag.crypto.jni.Native;
 import io.xdag.db.DatabaseFactory;
 import io.xdag.db.DatabaseName;
 import io.xdag.db.rocksdb.RocksdbFactory;
@@ -314,7 +313,7 @@ public class Kernel {
         // pow
         // ====================================
         pow = new XdagPow(this);
-        Native.crypt_start();
+
         minerManager.setPoW(pow);
         minerManager.start();
         awardManager.start();

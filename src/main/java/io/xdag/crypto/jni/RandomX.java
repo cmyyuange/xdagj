@@ -83,7 +83,7 @@ public class RandomX {
             File file = new File(nativeDir, name);
 
             if (!file.exists()) {
-                InputStream in = Native.class.getResourceAsStream(resource); // null pointer exception
+                InputStream in = RandomX.class.getResourceAsStream(resource); // null pointer exception
                 OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
                 for (int c; (c = Objects.requireNonNull(in).read()) != -1; ) {
                     out.write(c);

@@ -29,6 +29,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.xdag.Kernel;
 import io.xdag.core.BlockWrapper;
+import io.xdag.crypto.Sign;
 import io.xdag.mine.handler.ConnectionLimitHandler;
 import io.xdag.net.handler.MessageCodes;
 import io.xdag.net.handler.Xdag;
@@ -43,6 +44,9 @@ import io.xdag.net.message.MessageQueue;
 import io.xdag.net.message.impl.Xdag03MessageFactory;
 import io.xdag.net.node.Node;
 import java.net.InetSocketAddress;
+
+import org.apache.commons.lang3.RandomUtils;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -150,14 +154,15 @@ public class XdagChannel extends Channel {
 
     public void sendPubkey(ChannelHandlerContext ctx) throws Exception {
         ByteBuf buffer = ctx.alloc().buffer(1024);
-        buffer.writeBytes(kernel.getConfig().getNodeSpec().getXKeys().pub);
+        byte[] pubkey = kernel.getWallet().getDefKey().getPublicKey().asEcPoint(Sign.CURVE).getEncoded(true);
+        buffer.writeBytes(pubkey);
         ctx.writeAndFlush(buffer).sync();
         node.getStat().Outbound.add(2);
     }
 
     public void sendPassword(ChannelHandlerContext ctx) throws Exception {
         ByteBuf buffer = ctx.alloc().buffer(512);
-        buffer.writeBytes(kernel.getConfig().getNodeSpec().getXKeys().sect0_encoded);
+        buffer.readBytes(RandomUtils.nextBytes(512));
         ctx.writeAndFlush(buffer).sync();
         node.getStat().Outbound.add(1);
     }

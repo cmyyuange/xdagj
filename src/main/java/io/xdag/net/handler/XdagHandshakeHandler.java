@@ -28,7 +28,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.xdag.Kernel;
-import io.xdag.crypto.jni.Native;
+import io.xdag.crypto.Sign;
 import io.xdag.net.XdagChannel;
 import io.xdag.net.XdagVersion;
 import java.net.InetSocketAddress;
@@ -122,23 +122,12 @@ public class XdagHandshakeHandler extends ByteToMessageDecoder {
                 }
             }
 
-        } else {
-            byte[] read = new byte[512];
-            in.readBytes(read);
-            log.debug("接受区块：" + Hex.encodeHexString(read));
-            // 接受区块
-            byte[] uncryptData = Native.dfslib_uncrypt_byte_sector(
-                    read, read.length, channel.getNode().getStat().Inbound.get() - 3 + 1);
-            log.debug(
-                    "in="
-                            + channel.getNode().getStat().Inbound.get()
-                            + ", after  dfslib_uncrypt_sector : "
-                            + Hex.encodeHexString(uncryptData));
-            channel.getNode().getStat().Inbound.add();
         }
+
     }
 
     public boolean checkDnetPubkey(byte[] pubkey) {
-        return Arrays.equals(kernel.getConfig().getNodeSpec().getXKeys().pub, pubkey);
+        byte[] pubkeyBytes = kernel.getWallet().getDefKey().getPublicKey().asEcPoint(Sign.CURVE).getEncoded(true);
+        return Arrays.equals(pubkeyBytes, pubkey);
     }
 }

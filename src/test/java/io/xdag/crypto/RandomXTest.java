@@ -23,14 +23,6 @@
  */
 package io.xdag.crypto;
 
-import io.xdag.crypto.jni.Native;
-import io.xdag.utils.BytesUtils;
-import org.junit.Before;
-import org.junit.Test;
-
-import static io.xdag.crypto.jni.RandomX.*;
-
-
 public class RandomXTest {
 
 //    @Before

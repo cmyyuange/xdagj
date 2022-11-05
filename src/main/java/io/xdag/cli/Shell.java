@@ -27,7 +27,6 @@ package io.xdag.cli;
 import static io.xdag.utils.BasicUtils.address2Hash;
 
 import io.xdag.Kernel;
-import io.xdag.crypto.jni.Native;
 import io.xdag.utils.BasicUtils;
 import io.xdag.wallet.Wallet;
 import java.util.HashMap;
@@ -501,13 +500,8 @@ public class Shell extends JlineCommandRegistry implements CommandRegistry, Teln
 
         if (isTelnet) {
             return line.equals(kernel.getConfig().getAdminSpec().getTelnetPassword());
-        } else {
-            int err = Native.verify_dnet_key(line, kernel.getConfig().getNodeSpec().getDnetKeyBytes());
-            if (err < 0) {
-                println("The password is incorrect");
-                return false;
-            }
         }
+
         return true;
     }
 

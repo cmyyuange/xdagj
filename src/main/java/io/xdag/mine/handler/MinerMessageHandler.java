@@ -29,7 +29,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
 import io.xdag.core.XdagBlock;
 import io.xdag.core.XdagField;
-import io.xdag.crypto.jni.Native;
 import io.xdag.mine.MinerChannel;
 import io.xdag.net.message.Message;
 import io.xdag.net.message.MessageFactory;
@@ -71,15 +70,15 @@ public class MinerMessageHandler extends ByteToMessageCodec<byte[]> {
             log.debug("Send a message for miner: {} ip&port:{} with sectorNo={},length={}",
                     channel.getAddressHash(),channel.getInetAddress().toString(),sectorNo, len);
             BytesUtils.arrayReverse(bytes);
-            out.writeBytes(Native.dfslib_encrypt_array(bytes, 1, sectorNo));
+            out.writeBytes(bytes);
             channel.getOutBound().add();
         } else if (len == 2 * DATA_SIZE) {
             log.debug("Send a message for miner:{} ip&port:{} with sectorNo={},length={}, hex is[{}]",
                     channel.getAddressHash(),channel.getInetAddress().toString(),sectorNo, len, Hex.encodeHexString(bytes));
-            out.writeBytes(Native.dfslib_encrypt_array(bytes, 2, sectorNo));
+            out.writeBytes(bytes);
             channel.getOutBound().add(2);
         } else if (len == 16 * DATA_SIZE) {
-            out.writeBytes(Native.dfslib_encrypt_array(bytes, 16, sectorNo));
+            out.writeBytes(bytes);
             channel.getOutBound().add(16);
         } else {
             log.debug("Send a error message of this length:{} field type to miner:{} ip&port:{}.",
@@ -90,20 +89,18 @@ public class MinerMessageHandler extends ByteToMessageCodec<byte[]> {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         Message msg = null;
-        long sectorNo = channel.getInBound().get();
         int len = in.readableBytes();
         // The length of the received message is 32 bytes
         if (len == DATA_SIZE) {
             log.debug("Received a message from the miner:{} ip&port:{},msg len == 32",
                     channel.getAddressHash(),channel.getInetAddress().toString());
-            byte[] encryptData = new byte[DATA_SIZE];
-            in.readBytes(encryptData);
-            byte[] unCryptData = Native.dfslib_uncrypt_array(encryptData, 1, sectorNo);
+            byte[] unCryptData = new byte[DATA_SIZE];
+            in.readBytes(unCryptData);
             BytesUtils.arrayReverse(unCryptData);
             //The message received is the worker_name
             if(BytesUtils.compareTo(unCryptData,28,4, BigInteger.valueOf(WORKERNAME_HEADER_WORD).toByteArray(),0,4)==0){
                 msg = messageFactory.create(WORKER_NAME.asByte(),MutableBytes.wrap(unCryptData));
-            }else {
+            } else {
                 if (channel.isServer()) {
                     // If it is the server, the one-byte message received can only be task-share
                     msg = messageFactory.create(TASK_SHARE.asByte(), MutableBytes.wrap(unCryptData));
@@ -116,9 +113,8 @@ public class MinerMessageHandler extends ByteToMessageCodec<byte[]> {
         } else if (len == 16 * DATA_SIZE) {
             log.debug("Received a message from the miner:{} ip&port:{},msg len == 512",
                     channel.getAddressHash(),channel.getInetAddress().toString());
-            byte[] encryptData = new byte[512];
-            in.readBytes(encryptData);
-            byte[] unCryptData = Native.dfslib_uncrypt_array(encryptData, 16, sectorNo);
+            byte[] unCryptData = new byte[512];
+            in.readBytes(unCryptData);
             long transportHeader = BytesUtils.bytesToLong(unCryptData, 0, true);
             int ttl = (int) ((transportHeader >> 8) & 0xff);
             int crc = BytesUtils.bytesToInt(unCryptData, 4, true);

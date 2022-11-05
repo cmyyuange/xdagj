@@ -36,7 +36,6 @@ import io.xdag.core.Block;
 import io.xdag.core.BlockWrapper;
 import io.xdag.core.ImportResult;
 import io.xdag.core.XdagBlock;
-import io.xdag.crypto.jni.Native;
 import io.xdag.mine.MinerChannel;
 import io.xdag.mine.manager.MinerManager;
 import io.xdag.utils.BytesUtils;
@@ -71,22 +70,8 @@ public class MinerHandShakeHandler extends ByteToMessageDecoder {
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         if (in.readableBytes() >= XdagBlock.XDAG_BLOCK_SIZE) {
             log.debug("Receive a address block from ip&port:{}",channel.getInetAddress().toString());
-            byte[] address = new byte[512];
-            in.readBytes(address);
-
-            long sectorNo = channel.getInBound().get();
-
-            /* decrypt data */
-            byte[] uncryptData = Native.dfslib_uncrypt_array(address, 16, sectorNo);
-//            int crc = BytesUtils.bytesToInt(uncryptData, 4, true);
-//            int head = BytesUtils.bytesToInt(uncryptData, 0, true);
-//
-//            // 清除transportheader
-//            System.arraycopy(BytesUtils.longToBytes(0, true), 0, uncryptData, 4, 4);
-//            System.out.println(Hex.toHexString(uncryptData));
-//            if (head != BLOCK_HEAD_WORD || !crc32Verify(uncryptData, crc)) {
-//                System.out.println(head != BLOCK_HEAD_WORD);
-
+            byte[] uncryptData = new byte[512];
+            in.readBytes(uncryptData);
             if (isDataIllegal(uncryptData.clone())) {
                 log.debug("not a block from miner: {}, host:{}.",channel.getAddressHash(),channel.getInetAddress().toString());
                 ctx.channel().closeFuture();

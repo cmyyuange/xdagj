@@ -161,9 +161,6 @@ public class Launcher {
         config.setDir();
         logPoolInfo(config);
 
-        // init keys
-        config.initKeys();
-
         return config;
     }
 

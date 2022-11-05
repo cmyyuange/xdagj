@@ -81,8 +81,6 @@ public interface Config {
 
     void setDir();
 
-    void initKeys() throws Exception;
-
     // rpc
 //    List<ModuleDescription> getRpcModules();
 //    boolean isRPCEnabled();

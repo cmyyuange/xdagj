@@ -31,7 +31,6 @@ import io.xdag.config.RandomXConstants;
 import io.xdag.core.*;
 import io.xdag.crypto.SampleKeys;
 import io.xdag.crypto.Sign;
-import io.xdag.crypto.jni.Native;
 import io.xdag.db.rocksdb.RocksdbFactory;
 import io.xdag.db.rocksdb.RocksdbKVSource;
 import io.xdag.mine.randomx.RandomX;
@@ -116,10 +115,6 @@ public class SnapshotJTest {
         snapshotConfig.getNodeSpec().setStoreDir(root2.newFolder().getAbsolutePath());
         snapshotConfig.getNodeSpec().setStoreBackupDir(root2.newFolder().getAbsolutePath());
 
-        Native.init(config);
-        if (Native.dnet_crypt_init() < 0) {
-            throw new Exception("dnet crypt init failed");
-        }
         pwd = "password";
         wallet = new Wallet(config);
         wallet.unlock(pwd);

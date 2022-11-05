@@ -24,7 +24,6 @@
 
 package io.xdag.config.spec;
 
-import io.xdag.crypto.DnetKeys;
 import java.net.InetSocketAddress;
 import java.util.List;
 
@@ -44,12 +43,6 @@ public interface NodeSpec {
 
     int getConnectionReadTimeout();
 
-    byte[] getDnetKeyBytes();
-
-    void setDnetKeyBytes(byte[] dnetKeyBytes);
-
-    DnetKeys getXKeys();
-
     int getTTL();
 
     List<InetSocketAddress> getWhiteIPList();
@@ -64,8 +57,6 @@ public interface NodeSpec {
     int getLibp2pPort();
 
     String getLibp2pPrivkey();
-
-    String getDnetKeyFile();
 
     String getStoreDir();
 
