@@ -24,6 +24,7 @@
 
 package io.xdag.config;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +36,7 @@ import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.convert.DefaultListDelimiterHandler;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.typesafe.config.ConfigFactory;
@@ -47,6 +49,7 @@ import io.xdag.config.spec.RPCSpec;
 import io.xdag.config.spec.SnapshotSpec;
 import io.xdag.config.spec.WalletSpec;
 import io.xdag.core.XdagField;
+import io.xdag.crypto.DnetKeys;
 import io.xdag.rpc.modules.ModuleDescription;
 import lombok.Getter;
 import lombok.Setter;
@@ -115,7 +118,7 @@ public class AbstractConfig implements Config, AdminSpec, PoolSpec, NodeSpec, Wa
 
     protected int TTL = 5;
     protected byte[] dnetKeyBytes = new byte[2048];
-
+    protected DnetKeys xKeys;
     protected List<InetSocketAddress> whiteIPList = new ArrayList<>() {
     };
 
@@ -174,6 +177,21 @@ public class AbstractConfig implements Config, AdminSpec, PoolSpec, NodeSpec, Wa
         storeBackupDir = getRootDir() + "/rocksdb/xdagdb/backupdata";
         whiteListDir = getRootDir() + "/netdb-white.txt";
         netDBDir = getRootDir() + "/netdb.txt";
+    }
+
+    public void initKeys() throws Exception {
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("dnet_keys.bin");
+        if (inputStream == null) {
+            throw new RuntimeException("can not find dnet_key.bin file.");
+        } else {
+            xKeys = new DnetKeys();
+            byte[] data = new byte[3072];
+            IOUtils.read(inputStream, data);
+            System.arraycopy(data, 0, xKeys.prv, 0, 1024);
+            System.arraycopy(data, 1024, xKeys.pub, 0, 1024);
+            System.arraycopy(data, 2048, xKeys.sect0_encoded, 0, 512);
+            System.arraycopy(data, 2048 + 512, xKeys.sect0, 0, 512);
+        }
     }
 
     @Override
@@ -351,6 +369,11 @@ public class AbstractConfig implements Config, AdminSpec, PoolSpec, NodeSpec, Wa
     @Override
     public int getMaxInboundConnectionsPerIp() {
         return this.maxInboundConnectionsPerIp;
+    }
+
+    @Override
+    public void setDnetKeyBytes(byte[] dnetKeyBytes) {
+        this.dnetKeyBytes = dnetKeyBytes;
     }
 
     @Override

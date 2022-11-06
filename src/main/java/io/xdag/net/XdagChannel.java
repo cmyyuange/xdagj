@@ -154,15 +154,14 @@ public class XdagChannel extends Channel {
 
     public void sendPubkey(ChannelHandlerContext ctx) throws Exception {
         ByteBuf buffer = ctx.alloc().buffer(1024);
-        byte[] pubkey = kernel.getWallet().getDefKey().getPublicKey().asEcPoint(Sign.CURVE).getEncoded(true);
-        buffer.writeBytes(pubkey);
+        buffer.writeBytes(kernel.getConfig().getNodeSpec().getXKeys().pub);
         ctx.writeAndFlush(buffer).sync();
         node.getStat().Outbound.add(2);
     }
 
     public void sendPassword(ChannelHandlerContext ctx) throws Exception {
         ByteBuf buffer = ctx.alloc().buffer(512);
-        buffer.readBytes(RandomUtils.nextBytes(512));
+        buffer.writeBytes(kernel.getConfig().getNodeSpec().getXKeys().sect0_encoded);
         ctx.writeAndFlush(buffer).sync();
         node.getStat().Outbound.add(1);
     }

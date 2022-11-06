@@ -122,12 +122,15 @@ public class XdagHandshakeHandler extends ByteToMessageDecoder {
                 }
             }
 
+        } else {
+            byte[] uncryptData = new byte[512];
+            in.readBytes(uncryptData);
+            log.debug("in=" + channel.getNode().getStat().Inbound.get() + ", receive block：" + Hex.encodeHexString(uncryptData));
+            channel.getNode().getStat().Inbound.add();
         }
-
     }
 
     public boolean checkDnetPubkey(byte[] pubkey) {
-        byte[] pubkeyBytes = kernel.getWallet().getDefKey().getPublicKey().asEcPoint(Sign.CURVE).getEncoded(true);
-        return Arrays.equals(pubkeyBytes, pubkey);
+        return Arrays.equals(kernel.getConfig().getNodeSpec().getXKeys().pub, pubkey);
     }
 }
